@@ -29,10 +29,10 @@
 #define LEDS_SER    7     // dato de entrada (bit) para shift register de leds
 
 // 2x GATE + 2x CV
-#define CV0         9     // señal pwm CV0
-#define CV1        10     // señal pwm CV1
-#define GATE0      11     // señal gate0
-#define GATE1      12     // señal gate1 (DATASHEET NO PERMITE A6 o A7 como output digital)
+#define CVA         9     // señal pwm CVA
+#define CVB        10     // señal pwm CVB
+#define GATEA      11     // señal gateA
+#define GATEB      12     // señal gateB (DATASHEET NO PERMITE A6 o A7 como output digital)
 
 // parámetros varios
 #define TOTAL_STEPS 16    // total de pasos del secuenciador
@@ -44,20 +44,31 @@
 // variables globales
 int modes[8];                     // lecturas analogas de los pasos
 int steps[TOTAL_STEPS];           // lecturas analogas de los pasos
-int activeStep;                   // indice del paso activo
-int rate0;                        // frecuencia con la que cambia de estado el secuenciador 1
-int rate1;                        // frecuencia con la que cambia de estado el secuenciador 2
-float normalized_rate;            // frecuencia del secuenciador en escala de 0.0 a 1.0 que representa a MIN_RATE y MAX_RATE
-float final_rate;                 // frecuencia del secuenciador en Hz como decimal
-unsigned long step_period;        // si se usa unsigned int ocurre un overflow a los 64 segundos y se va todo al carajo xd
-unsigned long timerStep;          // mientras que con unsigned long puede estar varios dias sin overflow
+int activeStepA;                  // indice del paso activo seqA
+int activeStepB;                  // indice del paso activo seqB
+int modeA;
+int modeB;
+int optA0;
+int optA1;
+int optB0;
+int optB1;
+int rateA;                        // frecuencia con la que cambia de estado el secuenciador 1
+int rateB;                        // frecuencia con la que cambia de estado el secuenciador 2
+float normalized_rateA;           // frecuencia del secuenciador en escala de 0.0 a 1.0 que representa a MIN_RATE y MAX_RATE
+float final_rateA;                // frecuencia del secuenciador en Hz como decimal
+float normalized_rateB;           // frecuencia del secuenciador en escala de 0.0 a 1.0 que representa a MIN_RATE y MAX_RATE
+float final_rateB;                // frecuencia del secuenciador en Hz como decimal
+unsigned long step_periodA;       // si se usa unsigned int ocurre un overflow a los 64 segundos y se va todo al carajo xd
+unsigned long timerStepA;         // mientras que con unsigned long puede estar varios dias sin overflow
+unsigned long step_periodB;       // si se usa unsigned int ocurre un overflow a los 64 segundos y se va todo al carajo xd
+unsigned long timerStepB;         // mientras que con unsigned long puede estar varios dias sin overflow
 int minPitch = 21;                // pitch midi minimo
 int maxPitch = 108;               // pitch midi maximo
 
 
 // declaración de funciones
 int lin2log(int index);           // ajuste de potenciometro lineal a logaritmico
-int readPot(int mux, int index);  // lectura adc de un potenciómetro
+void readPotentiometers(void);     // lectura adc de potenciómetros
 
   // -------------------------------------------
 
@@ -74,10 +85,10 @@ void setup() {
   pinMode(MUXA, OUTPUT);
   pinMode(MUXB, OUTPUT);
   pinMode(MUXC, OUTPUT);
-  pinMode(GATE0, OUTPUT);
-  pinMode(GATE1, OUTPUT);
-  pinMode(CV0, OUTPUT);
-  pinMode(CV1, OUTPUT);
+  pinMode(GATEA, OUTPUT);
+  pinMode(GATEB, OUTPUT);
+  pinMode(CVA, OUTPUT);
+  pinMode(CVB, OUTPUT);
 
 
   // se configuran las salidas PWM CV0 y CV1 a 10bit y 15.6khz
@@ -87,8 +98,8 @@ void setup() {
                                                     // Frecuencia PWM = (F_CPU/(TOP+1)) --> pwm a 15.6khz
 
   // inicializar variables globales
-
-  activeStep = TOTAL_STEPS - 1;
+  activeStepA = TOTAL_STEPS - 1;
+  activeStepB = TOTAL_STEPS - 1;
   timerStep = 0;
   
 }
@@ -98,39 +109,42 @@ void setup() {
 void loop() {
 
   // leer entradas análogas
-  for(int ctr = 0; ctr < 8; ctr++) {
-    
-    digitalWrite(MUXC, ctr & 4);
-    digitalWrite(MUXB, ctr & 2);
-    digitalWrite(MUXA, ctr & 1);
-    
-    modes[ctr] = analogRead(POTS2);
-    steps[ctr] = analogRead(POTS1);
-    steps[ctr + 8] = analogRead(POTS0);
-    
-  }
+  readPotentiometers();
 
-  //Serial.println(steps[activeStep]);
-  //Serial.println(modes[0]);
-  float rate = modes[6]; //TEST (BORRAR)
+  // se escalan los valores
+  modeA = map(modes[0],0,1023,0,9);
+  optA0 = map(modes[1],0,1023,0,9);
+  optA1 = map(modes[2],0,1023,0,9);
+  modeB = map(modes[3],0,1023,0,9);
+  optB0 = map(modes[4],0,1023,0,9);
+  optB1 = map(modes[5],0,1023,0,9);
+  rateA = modes[6];
+  rateB = modes[7];
+  
   // se calcula el periodo entre steps
-  normalized_rate = 1.0*rate/1023;
-  final_rate = MAX_RATE*normalized_rate;
-  if(final_rate < MIN_RATE)
-    final_rate = MIN_RATE;
-  step_period = 1000.0/final_rate;
+  normalized_rateA = 1.0*rateA/1023;
+  final_rateA = MAX_RATE*normalized_rateA;
+  if(final_rateA < MIN_RATE)
+    final_rateA = MIN_RATE;
+  step_periodA = 1000.0/final_rateA;
 
+  // se calcula el periodo entre steps
+  normalized_rateB = 1.0*rateB/1023;
+  final_rateB = MAX_RATE*normalized_rateB;
+  if(final_rateB < MIN_RATE)
+    final_rateB = MIN_RATE;
+  step_periodB = 1000.0/final_rateB;
   
 
   // -------------------------------------------
 
   // se actualiza la salida pwm considerando potenciómetros lineales o logarítmicos
   if(LOG_POTS){
-    OCR1A = lin2log(steps[activeStep]);
-    //OCR1B = lin2log(steps[activeStep]);
+    OCR1A = lin2log(steps[activeStepA]);
+    //OCR1B = lin2log(steps[activeStepB]);
   } else {
-    OCR1A = steps[activeStep];
-    OCR1B = steps[activeStep];
+    OCR1A = steps[activeStepA];
+    OCR1B = steps[activeStepB];
   }
 
 
@@ -138,9 +152,9 @@ void loop() {
   if(millis() - timerStep >= step_period) {
 
     // se pasa al siguiente step
-    activeStep += 1;
-    if (activeStep >= TOTAL_STEPS)
-      activeStep = 0;
+    activeStepA += 1;
+    if (activeStepA >= TOTAL_STEPS)
+      activeStepA = 0;
 
     // primero se reinician los estados del shift register
     digitalWrite(LEDS_SRCLR, LOW);
@@ -148,7 +162,7 @@ void loop() {
   
     // led de paso activo
     for(int ctr = TOTAL_STEPS - 1; ctr >= 0 ; ctr--) {
-      if(ctr == activeStep)
+      if(ctr == activeStepA)
         digitalWrite(LEDS_SER, HIGH);
       else
         digitalWrite(LEDS_SER, LOW);
@@ -163,7 +177,7 @@ void loop() {
 
     //Serial.println(OCR1A);
     //int pitch = map(steps[activeStep],0,1023,48,108);
-    int pitch = map(steps[activeStep],0,1023,minPitch,maxPitch);
+    int pitch = map(steps[activeStepA],0,1023,minPitch,maxPitch);
     int velocity = 0xff;
 
     Serial.write(0x80);
@@ -184,7 +198,18 @@ void loop() {
 }
 
   // -------------------------------------------
-  
+
+  void readPotentiometers(void){
+      for(int ctr = 0; ctr < 8; ctr++) {
+        digitalWrite(MUXC, ctr & 4);
+        digitalWrite(MUXB, ctr & 2);
+        digitalWrite(MUXA, ctr & 1);
+    
+        modes[ctr] = analogRead(POTS2);
+        steps[ctr] = analogRead(POTS1);
+        steps[ctr + 8] = analogRead(POTS0);
+      }
+  }
   
   // ajuste de potenciometro lineal a logaritmico
   int lin2log(int index){

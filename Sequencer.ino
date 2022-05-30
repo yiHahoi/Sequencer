@@ -100,7 +100,7 @@ void setup() {
   // inicializar variables globales
   activeStepA = TOTAL_STEPS - 1;
   activeStepB = TOTAL_STEPS - 1;
-  timerStep = 0;
+  timerStepA = 0;
   
 }
 
@@ -121,14 +121,14 @@ void loop() {
   rateA = modes[6];
   rateB = modes[7];
   
-  // se calcula el periodo entre steps
+  // se calcula el periodo entre steps de seqA
   normalized_rateA = 1.0*rateA/1023;
   final_rateA = MAX_RATE*normalized_rateA;
   if(final_rateA < MIN_RATE)
     final_rateA = MIN_RATE;
   step_periodA = 1000.0/final_rateA;
 
-  // se calcula el periodo entre steps
+  // se calcula el periodo entre steps de seqB
   normalized_rateB = 1.0*rateB/1023;
   final_rateB = MAX_RATE*normalized_rateB;
   if(final_rateB < MIN_RATE)
@@ -149,7 +149,7 @@ void loop() {
 
 
   // actualizar leds a través del 74hc595
-  if(millis() - timerStep >= step_period) {
+  if(millis() - timerStepA >= step_periodA) {
 
     // se pasa al siguiente step
     activeStepA += 1;
@@ -191,7 +191,7 @@ void loop() {
 
 
     // se resetea el cronometro de paso
-    timerStep = millis();
+    timerStepA = millis();
 
   }
 

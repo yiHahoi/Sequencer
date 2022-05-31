@@ -68,7 +68,8 @@ int maxPitch = 108;               // pitch midi maximo
 
 // declaración de funciones
 int lin2log(int index);           // ajuste de potenciometro lineal a logaritmico
-void readPotentiometers(void);     // lectura adc de potenciómetros
+void readPotentiometers(void);    // lectura adc de potenciómetros
+void scalePotValues(void);        // transforma valores analogos de potenciometro (0-1023) a rangos de uso
 
   // -------------------------------------------
 
@@ -112,41 +113,18 @@ void loop() {
   readPotentiometers();
 
   // se escalan los valores
-  modeA = map(modes[0],0,1023,0,9);
-  optA0 = map(modes[1],0,1023,0,9);
-  optA1 = map(modes[2],0,1023,0,9);
-  modeB = map(modes[3],0,1023,0,9);
-  optB0 = map(modes[4],0,1023,0,9);
-  optB1 = map(modes[5],0,1023,0,9);
-  rateA = modes[6];
-  rateB = modes[7];
-  
-  // se calcula el periodo entre steps de seqA
-  normalized_rateA = 1.0*rateA/1023;
-  final_rateA = MAX_RATE*normalized_rateA;
-  if(final_rateA < MIN_RATE)
-    final_rateA = MIN_RATE;
-  step_periodA = 1000.0/final_rateA;
-
-  // se calcula el periodo entre steps de seqB
-  normalized_rateB = 1.0*rateB/1023;
-  final_rateB = MAX_RATE*normalized_rateB;
-  if(final_rateB < MIN_RATE)
-    final_rateB = MIN_RATE;
-  step_periodB = 1000.0/final_rateB;
-  
+  scalePotValues();
 
   // -------------------------------------------
 
   // se actualiza la salida pwm considerando potenciómetros lineales o logarítmicos
   if(LOG_POTS){
     OCR1A = lin2log(steps[activeStepA]);
-    //OCR1B = lin2log(steps[activeStepB]);
+    OCR1B = lin2log(steps[activeStepB]);
   } else {
     OCR1A = steps[activeStepA];
     OCR1B = steps[activeStepB];
   }
-
 
   // actualizar leds a través del 74hc595
   if(millis() - timerStepA >= step_periodA) {
@@ -175,8 +153,6 @@ void loop() {
     digitalWrite(LEDS_RCLK, LOW);
     digitalWrite(LEDS_RCLK, HIGH);
 
-    //Serial.println(OCR1A);
-    //int pitch = map(steps[activeStep],0,1023,48,108);
     int pitch = map(steps[activeStepA],0,1023,minPitch,maxPitch);
     int velocity = 0xff;
 
@@ -200,15 +176,44 @@ void loop() {
   // -------------------------------------------
 
   void readPotentiometers(void){
-      for(int ctr = 0; ctr < 8; ctr++) {
-        digitalWrite(MUXC, ctr & 4);
-        digitalWrite(MUXB, ctr & 2);
-        digitalWrite(MUXA, ctr & 1);
     
-        modes[ctr] = analogRead(POTS2);
-        steps[ctr] = analogRead(POTS1);
-        steps[ctr + 8] = analogRead(POTS0);
-      }
+    for(int ctr = 0; ctr < 8; ctr++) {
+      digitalWrite(MUXC, ctr & 4);
+      digitalWrite(MUXB, ctr & 2);
+      digitalWrite(MUXA, ctr & 1);
+  
+      modes[ctr] = analogRead(POTS2);
+      steps[ctr] = analogRead(POTS1);
+      steps[ctr + 8] = analogRead(POTS0);
+    }
+    
+  }
+
+  void scalePotValues(void){
+    
+    modeA = map(modes[0],0,1023,0,9);
+    optA0 = map(modes[1],0,1023,0,9);
+    optA1 = map(modes[2],0,1023,0,9);
+    modeB = map(modes[3],0,1023,0,9);
+    optB0 = map(modes[4],0,1023,0,9);
+    optB1 = map(modes[5],0,1023,0,9);
+    rateA = modes[6];
+    rateB = modes[7];
+
+    // se calcula el periodo entre steps de seqA
+    normalized_rateA = 1.0*rateA/1023;
+    final_rateA = MAX_RATE*normalized_rateA;
+    if(final_rateA < MIN_RATE)
+      final_rateA = MIN_RATE;
+    step_periodA = 1000.0/final_rateA;
+
+    // se calcula el periodo entre steps de seqB
+    normalized_rateB = 1.0*rateB/1023;
+    final_rateB = MAX_RATE*normalized_rateB;
+    if(final_rateB < MIN_RATE)
+      final_rateB = MIN_RATE;
+    step_periodB = 1000.0/final_rateB;
+  
   }
   
   // ajuste de potenciometro lineal a logaritmico

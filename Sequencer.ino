@@ -191,49 +191,49 @@ void loop() {
   void updateMIDIOutputs(void){
   	
   	// modo monofonico
-  	if(modeA[0] == 0){
+  	if(modeA == 0){
   	
-  		int new_pitch = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
+  	int new_pitch = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
 		int old_pitch = map(old_steps[activeStepA],0,1023,minPitch,maxPitch);
 		int velocity = 0x5f;
 	  
-	  	if(new_pitch != old_pitch){
-	  	    Serial.write(0x80);
-	   		Serial.write(old_pitch);
+	  if(new_pitch != old_pitch){
+	    Serial.write(0x80);
+	   	Serial.write(old_pitch);
 			Serial.write(0x5f);
 		  
 			Serial.write(0x90);
 			Serial.write(new_pitch);
 			Serial.write(0x5f);
-	  	}
+	  }
 	  	
-	// modo polifonico
-  	} else if(modeA[0] == 1){
+	  // modo polifonico
+  	} else if(modeA == 1){
   	
-  		int new_pitchA = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
-		int old_pitchA = map(old_steps[activeStepA],0,1023,minPitch,maxPitch);
+  	  int new_pitchA = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
+		  int old_pitchA = map(old_steps[activeStepA],0,1023,minPitch,maxPitch);
   		int new_pitchB = map(new_steps[activeStepB],0,1023,minPitch,maxPitch);
-		int old_pitchB = map(old_steps[activeStepB],0,1023,minPitch,maxPitch);
-		int velocity = 0x5f;
+		  int old_pitchB = map(old_steps[activeStepB],0,1023,minPitch,maxPitch);
+		  int velocity = 0x5f;
 	  
 	  	if(new_pitchA != old_pitchA){
-	  	    Serial.write(0x80);
+	  	  Serial.write(0x80);
 	   		Serial.write(old_pitchA);
-			Serial.write(0x5f);
+			  Serial.write(0x5f);
 		  
-			Serial.write(0x90);
-			Serial.write(new_pitchA);
-			Serial.write(0x5f);
+			  Serial.write(0x90);
+			  Serial.write(new_pitchA);
+			  Serial.write(0x5f);
 	  	}
 	  	
 	  	if(new_pitchB != old_pitchB){
-	  	    Serial.write(0x80);
+	  	  Serial.write(0x80);
 	   		Serial.write(old_pitchB);
-			Serial.write(0x5f);
+			  Serial.write(0x5f);
 		  
-			Serial.write(0x90);
-			Serial.write(new_pitchB);
-			Serial.write(0x5f);
+			  Serial.write(0x90);
+			  Serial.write(new_pitchB);
+			  Serial.write(0x5f);
 	  	}
 	  	
   	} 

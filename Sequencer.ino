@@ -42,6 +42,18 @@
 #define MAX_RATE    30.0    // máxima frecuencia del secuenciador en Hz
 #define LOG_POTS    0       // flag que permite modificar la curva de los potenciómetros de lineal a logarítmica
 
+// escalas como semitonos (como intervalos en comentarios)
+int chromatic_scale[12]         = {0,1,2,3,4,5,6,7,8,9,10,11};  // [ 1,#1,2,#2,3,4,#4,5,#5,6,#6,7]
+int lydian_scale[7]             = {0,2,4,6,7,9,11};             // [ 1 , 2 , 3 ,#4 , 5 , 6 , 7 ]
+int ionian_scale[7]             = {0,2,4,5,7,9,11};             // [ 1 , 2 , 3 , 4 , 5 , 6 , 7 ]
+int mixolydian_scale[7]         = {0,2,4,5,7,9,10};             // [ 1 , 2 , 3 , 4 , 5 , 6 ,b7 ]
+int dorian_scale[7]             = {0,2,3,5,7,9,10};             // [ 1 , 2 ,b3 , 4 , 5 , 6 ,b7 ]
+int aeolian_scale[7]            = {0,2,3,5,7,8,10};             // [ 1 , 2 ,b3 , 4 , 5 ,b6 ,b7 ]
+int phrygian_scale[7]           = {0,1,3,5,7,8,10};             // [ 1 ,b2 ,b3 , 4 , 5 ,b6 ,b7 ]
+int locrian_scale[7]            = {0,1,3,5,6,8,10};             // [ 1 ,b2 ,b3 , 4 ,b5 ,b6 ,b7 ]
+int major_pentatonic_scale[5]   = {0,2,4,7,9};                  // [ 1 , 2 , 3 , 5 , 6 ]
+int minor_pentatonic_scale[5]   = {0,3,5,7,10};                 // [ 1 ,b3 , 4 , 5 ,b7 ]
+int hole_step_scale[6]          = {0,2,4,6,8,10};               // [ 1 , 2 , 3 ,#4 ,#5 ,#6 ]
 
 // variables globales
 int modes[8];                     // lecturas analogas de los modos

@@ -45,7 +45,8 @@
 
 // variables globales
 int modes[8];                     // lecturas analogas de los modos
-int steps[TOTAL_STEPS];           // lecturas analogas de los pasos
+int old_steps[TOTAL_STEPS];           // lecturas analogas de los pasos antiguos
+int new_steps[TOTAL_STEPS];           // lecturas analogas de los pasos nuevos
 int activeStepA;                  // indice del paso activo seqA
 int activeStepB;                  // indice del paso activo seqB
 int modeA;                        // modo secuenciador A
@@ -71,7 +72,8 @@ int maxPitch = 108;               // pitch midi maximo
 int lin2log(int index);           // ajuste de potenciometro lineal a logaritmico
 void readPotentiometers(void);    // lectura adc de potenciómetros
 void scalePotValues(void);        // transforma valores analogos de potenciometro (0-1023) a rangos de uso
-void updateOutputs(void);         // se actualizan las salidas pwm
+void updateCVOutputs(void);       // se actualizan las salidas pwm
+void updateMIDIOutputs(void);	  // se actualizan las salidas MIDI
 void modeSelection(void);         // modos y opciones
 
   // -------------------------------------------
@@ -119,8 +121,11 @@ void loop() {
   // se escalan los valores
   scalePotValues();
 
-  // se actualiza la salida pwm considerando potenciómetros lineales o logarítmicos
-  updateOutputs();
+  // se actualizan las salida pwm considerando potenciómetros lineales o logarítmicos
+  updateCVOutputs();
+  
+  // se actualizan las salidas MIDI
+  updateMIDIOutputs();
 
   // se actualizan los estados de los secuenciadores dependiendo del modo y opciones activos
   modeSelection();
@@ -138,8 +143,10 @@ void loop() {
       digitalWrite(MUXA, ctr & 1);
   
       modes[ctr] = analogRead(POTS2);
-      steps[ctr] = analogRead(POTS1);
-      steps[ctr + 8] = analogRead(POTS0);
+      old_steps[ctr] = new_steps[ctr];
+      old_steps[ctr + 8] = new_steps[ctr + 8];
+      new_steps[ctr] = analogRead(POTS1);
+      new_steps[ctr + 8] = analogRead(POTS0);
     }
     
   }
@@ -171,15 +178,68 @@ void loop() {
   
   }
 
-  void updateOutputs(void){
+  void updateCVOutputs(void){
     if(LOG_POTS){
-      OCR1A = lin2log(steps[activeStepA]);
-      OCR1B = lin2log(steps[activeStepB]);
+      OCR1A = lin2log(new_steps[activeStepA]);
+      OCR1B = lin2log(new_steps[activeStepB]);
     } else {
-      OCR1A = steps[activeStepA];
-      OCR1B = steps[activeStepB];
+      OCR1A = new_steps[activeStepA];
+      OCR1B = new_steps[activeStepB];
     }
   }
+
+  void updateMIDIOutputs(void){
+  	
+  	// modo monofonico
+  	if(modeA[0] == 0){
+  	
+  		int new_pitch = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
+		int old_pitch = map(old_steps[activeStepA],0,1023,minPitch,maxPitch);
+		int velocity = 0x5f;
+	  
+	  	if(new_pitch != old_pitch){
+	  	    Serial.write(0x80);
+	   		Serial.write(old_pitch);
+			Serial.write(0x5f);
+		  
+			Serial.write(0x90);
+			Serial.write(new_pitch);
+			Serial.write(0x5f);
+	  	}
+	  	
+	// modo polifonico
+  	} else if(modeA[0] == 1){
+  	
+  		int new_pitchA = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
+		int old_pitchA = map(old_steps[activeStepA],0,1023,minPitch,maxPitch);
+  		int new_pitchB = map(new_steps[activeStepB],0,1023,minPitch,maxPitch);
+		int old_pitchB = map(old_steps[activeStepB],0,1023,minPitch,maxPitch);
+		int velocity = 0x5f;
+	  
+	  	if(new_pitchA != old_pitchA){
+	  	    Serial.write(0x80);
+	   		Serial.write(old_pitchA);
+			Serial.write(0x5f);
+		  
+			Serial.write(0x90);
+			Serial.write(new_pitchA);
+			Serial.write(0x5f);
+	  	}
+	  	
+	  	if(new_pitchB != old_pitchB){
+	  	    Serial.write(0x80);
+	   		Serial.write(old_pitchB);
+			Serial.write(0x5f);
+		  
+			Serial.write(0x90);
+			Serial.write(new_pitchB);
+			Serial.write(0x5f);
+	  	}
+	  	
+  	} 
+
+  }
+
 
   // ajuste de potenciometro lineal a logaritmico
   int lin2log(int index){
@@ -245,8 +305,8 @@ void loop() {
       digitalWrite(LEDS_RCLK, LOW);
       digitalWrite(LEDS_RCLK, HIGH);
   
-      int pitch = map(steps[activeStepA],0,1023,minPitch,maxPitch);
-      int velocity = 0xff;
+      int pitch = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
+      int velocity = 0x5f;
   
       Serial.write(0x80);
       Serial.write(pitch);
@@ -309,8 +369,8 @@ void loop() {
     }
 
     if(changedA){
-      int pitch = map(steps[activeStepA],0,1023,minPitch,maxPitch);
-      int velocity = 0xff;
+      int pitch = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
+      int velocity = 0x5f;
   
       Serial.write(0x80);
       Serial.write(pitch);
@@ -325,8 +385,8 @@ void loop() {
     }
 
     if(changedB){
-      int pitch = map(steps[activeStepB],0,1023,minPitch,maxPitch);
-      int velocity = 0xff;
+      int pitch = map(new_steps[activeStepB],0,1023,minPitch,maxPitch);
+      int velocity = 0x5f;
   
       Serial.write(0x80);
       Serial.write(pitch);

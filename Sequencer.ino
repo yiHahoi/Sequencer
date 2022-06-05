@@ -35,41 +35,44 @@
 #define GATEB      12     // señal gateB (DATASHEET NO PERMITE A6 o A7 como output digital)
 
 // parámetros varios
-#define TOTAL_STEPS 16    // total de pasos del secuenciador
-#define MIN_RATE    0.05  // mínima frecuencia del secuenciador en Hz
-#define MAX_RATE    30.0  // máxima frecuencia del secuenciador en Hz
-#define LOG_POTS    0     // flag que permite modificar la curva de los potenciómetros de lineal a logarítmica
+#define SEQA_TOTAL_STEPS 8  // total de pasos del secuenciador A
+#define SEQB_TOTAL_STEPS 8  // total de pasos del secuenciador B
+#define TOTAL_STEPS 16      // total de pasos del secuenciador
+#define MIN_RATE    0.05    // mínima frecuencia del secuenciador en Hz
+#define MAX_RATE    30.0    // máxima frecuencia del secuenciador en Hz
+#define LOG_POTS    0       // flag que permite modificar la curva de los potenciómetros de lineal a logarítmica
 
 
 // variables globales
-int modes[8];                     // lecturas analogas de los pasos
+int modes[8];                     // lecturas analogas de los modos
 int steps[TOTAL_STEPS];           // lecturas analogas de los pasos
 int activeStepA;                  // indice del paso activo seqA
 int activeStepB;                  // indice del paso activo seqB
-int modeA;
-int modeB;
-int optA0;
-int optA1;
-int optB0;
-int optB1;
-int rateA;                        // frecuencia con la que cambia de estado el secuenciador 1
-int rateB;                        // frecuencia con la que cambia de estado el secuenciador 2
-float normalized_rateA;           // frecuencia del secuenciador en escala de 0.0 a 1.0 que representa a MIN_RATE y MAX_RATE
-float final_rateA;                // frecuencia del secuenciador en Hz como decimal
-float normalized_rateB;           // frecuencia del secuenciador en escala de 0.0 a 1.0 que representa a MIN_RATE y MAX_RATE
-float final_rateB;                // frecuencia del secuenciador en Hz como decimal
+int modeA;                        // modo secuenciador A
+int modeB;                        // modo secuenciador B
+int optA1;                        // opcion 1 secuenciador A
+int optA2;                        // opcion 2 secuenciador A
+int optB1;                        // opcion 1 secuenciador B
+int optB2;                        // opcion 2 secuenciador B
+int rateA;                        // frecuencia con la que cambia de estado el secuenciador A
+int rateB;                        // frecuencia con la que cambia de estado el secuenciador B
+float normalized_rateA;           // frecuencia del secuenciador A en escala de 0.0 a 1.0 que representa a MIN_RATE y MAX_RATE
+float normalized_rateB;           // frecuencia del secuenciador B en escala de 0.0 a 1.0 que representa a MIN_RATE y MAX_RATE
+float final_rateA;                // frecuencia del secuenciador A en Hz como decimal
+float final_rateB;                // frecuencia del secuenciador B en Hz como decimal
 unsigned long step_periodA;       // si se usa unsigned int ocurre un overflow a los 64 segundos y se va todo al carajo xd
-unsigned long timerStepA;         // mientras que con unsigned long puede estar varios dias sin overflow
-unsigned long step_periodB;       // si se usa unsigned int ocurre un overflow a los 64 segundos y se va todo al carajo xd
-unsigned long timerStepB;         // mientras que con unsigned long puede estar varios dias sin overflow
+unsigned long step_periodB;       // mientras que con unsigned long puede estar varios dias sin overflow
+unsigned long timerStepA;
+unsigned long timerStepB;
 int minPitch = 21;                // pitch midi minimo
 int maxPitch = 108;               // pitch midi maximo
-
 
 // declaración de funciones
 int lin2log(int index);           // ajuste de potenciometro lineal a logaritmico
 void readPotentiometers(void);    // lectura adc de potenciómetros
 void scalePotValues(void);        // transforma valores analogos de potenciometro (0-1023) a rangos de uso
+void updateOutputs(void);         // se actualizan las salidas pwm
+void modeSelection(void);         // modos y opciones
 
   // -------------------------------------------
 
@@ -100,8 +103,9 @@ void setup() {
 
   // inicializar variables globales
   activeStepA = TOTAL_STEPS - 1;
-  activeStepB = TOTAL_STEPS - 1;
+  activeStepB = SEQA_TOTAL_STEPS - 1;
   timerStepA = 0;
+  timerStepB = 0;
   
 }
 
@@ -115,61 +119,12 @@ void loop() {
   // se escalan los valores
   scalePotValues();
 
-  // -------------------------------------------
-
   // se actualiza la salida pwm considerando potenciómetros lineales o logarítmicos
-  if(LOG_POTS){
-    OCR1A = lin2log(steps[activeStepA]);
-    OCR1B = lin2log(steps[activeStepB]);
-  } else {
-    OCR1A = steps[activeStepA];
-    OCR1B = steps[activeStepB];
-  }
+  updateOutputs();
 
-  // actualizar leds a través del 74hc595
-  if(millis() - timerStepA >= step_periodA) {
+  // se actualizan los estados de los secuenciadores dependiendo del modo y opciones activos
+  modeSelection();
 
-    // se pasa al siguiente step
-    activeStepA += 1;
-    if (activeStepA >= TOTAL_STEPS)
-      activeStepA = 0;
-
-    // primero se reinician los estados del shift register
-    digitalWrite(LEDS_SRCLR, LOW);
-    digitalWrite(LEDS_SRCLR, HIGH);
-  
-    // led de paso activo
-    for(int ctr = TOTAL_STEPS - 1; ctr >= 0 ; ctr--) {
-      if(ctr == activeStepA)
-        digitalWrite(LEDS_SER, HIGH);
-      else
-        digitalWrite(LEDS_SER, LOW);
-      // se agrega el valor anterior al registro y se realiza un corrimiento de 1 bit
-      digitalWrite(LEDS_SRCLK, LOW);
-      digitalWrite(LEDS_SRCLK, HIGH);
-    }
-
-    // se actualiza el output final del 74hc595 con los bit ingresados
-    digitalWrite(LEDS_RCLK, LOW);
-    digitalWrite(LEDS_RCLK, HIGH);
-
-    int pitch = map(steps[activeStepA],0,1023,minPitch,maxPitch);
-    int velocity = 0xff;
-
-    Serial.write(0x80);
-    Serial.write(pitch);
-    Serial.write(0x5f);
-    
-    Serial.write(0x90);
-    Serial.write(pitch);
-    Serial.write(0x5f);
-    
-
-
-    // se resetea el cronometro de paso
-    timerStepA = millis();
-
-  }
 
 }
 
@@ -192,11 +147,11 @@ void loop() {
   void scalePotValues(void){
     
     modeA = map(modes[0],0,1023,0,9);
-    optA0 = map(modes[1],0,1023,0,9);
-    optA1 = map(modes[2],0,1023,0,9);
+    optA1 = map(modes[1],0,1023,0,9);
+    optA2 = map(modes[2],0,1023,0,9);
     modeB = map(modes[3],0,1023,0,9);
-    optB0 = map(modes[4],0,1023,0,9);
-    optB1 = map(modes[5],0,1023,0,9);
+    optB1 = map(modes[4],0,1023,0,9);
+    optB2 = map(modes[5],0,1023,0,9);
     rateA = modes[6];
     rateB = modes[7];
 
@@ -215,13 +170,179 @@ void loop() {
     step_periodB = 1000.0/final_rateB;
   
   }
-  
+
+  void updateOutputs(void){
+    if(LOG_POTS){
+      OCR1A = lin2log(steps[activeStepA]);
+      OCR1B = lin2log(steps[activeStepB]);
+    } else {
+      OCR1A = steps[activeStepA];
+      OCR1B = steps[activeStepB];
+    }
+  }
+
   // ajuste de potenciometro lineal a logaritmico
   int lin2log(int index){
     return int(pow(1.00679, index)+1);
   }
+
+  void modeSelection(void){
+
+    switch(modeA){
+      case 0:
+        mode0();
+        break;
+      case 1:
+        mode1();
+        break;
+      case 2:
+        break;
+      case 3:
+        break;
+      case 4:
+        break;
+      case 5:
+        break;
+      case 6:
+        break;
+      case 7:
+        break;
+      case 8:
+        break;
+    }
+
+  }
   
+  // modo 0
+  void mode0(void){
+    
+    // actualizar leds a través del 74hc595
+    if(millis() - timerStepA >= step_periodA) {
   
+      // se pasa al siguiente step
+      activeStepA += 1;
+      if (activeStepA >= TOTAL_STEPS)
+        activeStepA = 0;
+
+      activeStepB = activeStepA; // para modo 0, pwm de seqB = seqA 
+  
+      // primero se reinician los estados del shift register
+      digitalWrite(LEDS_SRCLR, LOW);
+      digitalWrite(LEDS_SRCLR, HIGH);
+    
+      // led de paso activo
+      for(int ctr = TOTAL_STEPS - 1; ctr >= 0 ; ctr--) {
+        if(ctr == activeStepA)
+          digitalWrite(LEDS_SER, HIGH);
+        else
+          digitalWrite(LEDS_SER, LOW);
+        // se agrega el valor anterior al registro y se realiza un corrimiento de 1 bit
+        digitalWrite(LEDS_SRCLK, LOW);
+        digitalWrite(LEDS_SRCLK, HIGH);
+      }
+  
+      // se actualiza el output final del 74hc595 con los bit ingresados
+      digitalWrite(LEDS_RCLK, LOW);
+      digitalWrite(LEDS_RCLK, HIGH);
+  
+      int pitch = map(steps[activeStepA],0,1023,minPitch,maxPitch);
+      int velocity = 0xff;
+  
+      Serial.write(0x80);
+      Serial.write(pitch);
+      Serial.write(0x5f);
+      
+      Serial.write(0x90);
+      Serial.write(pitch);
+      Serial.write(0x5f);
+
+      // se resetea el cronometro de paso
+      timerStepA = millis();
+
+    }
+  }
+
+  // modo 1
+  void mode1(void){
+
+    // actualizar leds a través del 74hc595
+    int changedA = 0;
+    int changedB = 0;
+
+    // se pasa al siguiente step del seqA?
+    if(millis() - timerStepA >= step_periodA) {
+      activeStepA += 1;
+      if (activeStepA >= SEQA_TOTAL_STEPS)
+        activeStepA = 0;
+      changedA = 1;
+    }
+
+    // se pasa al siguiente step del seqB?
+    if(millis() - timerStepB >= step_periodB) {
+      activeStepB += 1;
+      if (activeStepB >= TOTAL_STEPS)
+        activeStepB = SEQA_TOTAL_STEPS;
+      changedB = 1;
+    }
+
+    if(changedA || changedB){
+      
+      // primero se reinician los estados del shift register
+      digitalWrite(LEDS_SRCLR, LOW);
+      digitalWrite(LEDS_SRCLR, HIGH);
+
+      // led de paso activo
+      for(int ctr = TOTAL_STEPS - 1; ctr >= 0 ; ctr--) {
+        if(ctr == activeStepA || ctr == activeStepB)
+          digitalWrite(LEDS_SER, HIGH);
+        else
+          digitalWrite(LEDS_SER, LOW);
+        // se agrega el valor anterior al registro y se realiza un corrimiento de 1 bit
+        digitalWrite(LEDS_SRCLK, LOW);
+        digitalWrite(LEDS_SRCLK, HIGH);
+      }
+
+      // se actualiza el output final del 74hc595 con los bit ingresados
+      digitalWrite(LEDS_RCLK, LOW);
+      digitalWrite(LEDS_RCLK, HIGH);
+
+    }
+
+    if(changedA){
+      int pitch = map(steps[activeStepA],0,1023,minPitch,maxPitch);
+      int velocity = 0xff;
+  
+      Serial.write(0x80);
+      Serial.write(pitch);
+      Serial.write(0x5f);
+      
+      Serial.write(0x90);
+      Serial.write(pitch);
+      Serial.write(0x5f);
+
+      // se resetea el cronometro de paso
+      timerStepA = millis();
+    }
+
+    if(changedB){
+      int pitch = map(steps[activeStepB],0,1023,minPitch,maxPitch);
+      int velocity = 0xff;
+  
+      Serial.write(0x80);
+      Serial.write(pitch);
+      Serial.write(0x5f);
+      
+      Serial.write(0x90);
+      Serial.write(pitch);
+      Serial.write(0x5f);
+
+      // se resetea el cronometro de paso
+      timerStepB = millis();
+    }
+
+    
+    
+  }
   
   
   

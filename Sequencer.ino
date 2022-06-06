@@ -57,8 +57,8 @@ int hole_step_scale[6]          = {0,2,4,6,8,10};               // [ 1 , 2 , 3 ,
 
 // variables globales
 int modes[8];                     // lecturas analogas de los modos
-int old_steps[TOTAL_STEPS];           // lecturas analogas de los pasos antiguos
-int new_steps[TOTAL_STEPS];           // lecturas analogas de los pasos nuevos
+int old_steps[TOTAL_STEPS];       // lecturas analogas de los pasos antiguos
+int new_steps[TOTAL_STEPS];       // lecturas analogas de los pasos nuevos
 int activeStepA;                  // indice del paso activo seqA
 int activeStepB;                  // indice del paso activo seqB
 int modeA;                        // modo secuenciador A
@@ -85,7 +85,7 @@ int lin2log(int index);           // ajuste de potenciometro lineal a logaritmic
 void readPotentiometers(void);    // lectura adc de potenciómetros
 void scalePotValues(void);        // transforma valores analogos de potenciometro (0-1023) a rangos de uso
 void updateCVOutputs(void);       // se actualizan las salidas pwm
-void updateMIDIOutputs(void);	  // se actualizan las salidas MIDI
+void updateMIDIOutputs(void);	    // se actualizan las salidas MIDI
 void modeSelection(void);         // modos y opciones
 
   // -------------------------------------------

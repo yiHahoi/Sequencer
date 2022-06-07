@@ -61,12 +61,12 @@ int old_steps[TOTAL_STEPS];       // lecturas analogas de los pasos antiguos
 int new_steps[TOTAL_STEPS];       // lecturas analogas de los pasos nuevos
 int activeStepA;                  // indice del paso activo seqA
 int activeStepB;                  // indice del paso activo seqB
-int modeA;                        // modo secuenciador A
-int modeB;                        // modo secuenciador B
-int optA1;                        // opcion 1 secuenciador A
-int optA2;                        // opcion 2 secuenciador A
-int optB1;                        // opcion 1 secuenciador B
-int optB2;                        // opcion 2 secuenciador B
+int mode;                         // modo secuenciador
+int opt0;                         // opcion 0 
+int opt1;                         // opcion 1
+int opt2;                         // opcion 2
+int opt3;                         // opcion 3
+int opt4;                         // opcion 4
 int rateA;                        // frecuencia con la que cambia de estado el secuenciador A
 int rateB;                        // frecuencia con la que cambia de estado el secuenciador B
 float normalized_rateA;           // frecuencia del secuenciador A en escala de 0.0 a 1.0 que representa a MIN_RATE y MAX_RATE
@@ -133,15 +133,14 @@ void loop() {
   // se escalan los valores
   scalePotValues();
 
+  // se actualizan los estados de los secuenciadores dependiendo del modo y opciones activos
+  modeSelection();
+
   // se actualizan las salida pwm considerando potenciómetros lineales o logarítmicos
   updateCVOutputs();
   
   // se actualizan las salidas MIDI
   updateMIDIOutputs();
-
-  // se actualizan los estados de los secuenciadores dependiendo del modo y opciones activos
-  modeSelection();
-
 
 }
 
@@ -163,14 +162,43 @@ void loop() {
     
   }
 
+  /*
+    modes:
+          0) 1x 16 step sequencer
+          1) 1x 8 step sequencer + variable step times
+          2) 2x 8 step sequencers sync
+          3) 2x 8 step sequencers async
+          4) MIDI CC's
+
+    submodes:
+          0) normal
+          1) full and back
+          2) inverted
+          3) rand 
+
+    scales:
+          0) chromatic
+          1) lydian
+          2) ionian
+          3) mixolydian
+          4) dorian
+          5) aeolian
+          6) phrygian
+          7) locrian
+          8) pentatonic major
+          9) pentatonic minor
+          10)hole step
+
+  */
+
   void scalePotValues(void){
     
-    modeA = map(modes[0],0,1023,0,9);
-    optA1 = map(modes[1],0,1023,0,9);
-    optA2 = map(modes[2],0,1023,0,9);
-    modeB = map(modes[3],0,1023,0,9);
-    optB1 = map(modes[4],0,1023,0,9);
-    optB2 = map(modes[5],0,1023,0,9);
+    mode = map(modes[0],0,1023,0,4);
+    opt0 = map(modes[1],0,1023,0,9);
+    opt1 = map(modes[2],0,1023,0,9);
+    opt2 = map(modes[3],0,1023,0,9);
+    opt3 = map(modes[4],0,1023,0,9);
+    opt4 = map(modes[5],0,1023,0,9);
     rateA = modes[6];
     rateB = modes[7];
 
@@ -203,7 +231,7 @@ void loop() {
   void updateMIDIOutputs(void){
   	
   	// modo monofonico
-  	if(modeA == 0){
+  	if(mode == 0){
   	
   	int new_pitch = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
 		int old_pitch = map(old_steps[activeStepA],0,1023,minPitch,maxPitch);

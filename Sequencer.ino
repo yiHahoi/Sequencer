@@ -193,12 +193,12 @@ void loop() {
 
   void scalePotValues(void){
     
-    mode = map(modes[0],0,1023,0,4);
-    opt0 = map(modes[1],0,1023,0,9);
-    opt1 = map(modes[2],0,1023,0,9);
-    opt2 = map(modes[3],0,1023,0,9);
-    opt3 = map(modes[4],0,1023,0,9);
-    opt4 = map(modes[5],0,1023,0,9);
+    mode = map(modes[0],0,1023,0,4); // modo
+    opt0 = map(modes[1],0,1023,0,3); // submodo
+    opt1 = map(modes[2],0,1023,0,10); // escala
+    opt2 = map(modes[3],0,1023,0,9); // nota base
+    opt3 = map(modes[4],0,1023,0,9); // octava base
+    opt4 = map(modes[5],0,1023,0,9); // rango de octavas
     rateA = modes[6];
     rateB = modes[7];
 
@@ -235,45 +235,45 @@ void loop() {
   	
   	int new_pitch = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
 		int old_pitch = map(old_steps[activeStepA],0,1023,minPitch,maxPitch);
-		int velocity = 0x5f;
+		byte velocity = 0x5f;
 	  
 	  if(new_pitch != old_pitch){
 	    Serial.write(0x80);
 	   	Serial.write(old_pitch);
-			Serial.write(0x5f);
+			Serial.write(velocity);
 		  
 			Serial.write(0x90);
 			Serial.write(new_pitch);
-			Serial.write(0x5f);
+			Serial.write(velocity);
 	  }
 	  	
 	  // modo polifonico
-  	} else if(modeA == 1){
+  	} else if(mode == 1){
   	
   	  int new_pitchA = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
 		  int old_pitchA = map(old_steps[activeStepA],0,1023,minPitch,maxPitch);
   		int new_pitchB = map(new_steps[activeStepB],0,1023,minPitch,maxPitch);
 		  int old_pitchB = map(old_steps[activeStepB],0,1023,minPitch,maxPitch);
-		  int velocity = 0x5f;
+		  byte velocity = 0x5f;
 	  
 	  	if(new_pitchA != old_pitchA){
 	  	  Serial.write(0x80);
 	   		Serial.write(old_pitchA);
-			  Serial.write(0x5f);
+			  Serial.write(velocity);
 		  
 			  Serial.write(0x90);
 			  Serial.write(new_pitchA);
-			  Serial.write(0x5f);
+			  Serial.write(velocity);
 	  	}
 	  	
 	  	if(new_pitchB != old_pitchB){
 	  	  Serial.write(0x80);
 	   		Serial.write(old_pitchB);
-			  Serial.write(0x5f);
+			  Serial.write(velocity);
 		  
 			  Serial.write(0x90);
 			  Serial.write(new_pitchB);
-			  Serial.write(0x5f);
+			  Serial.write(velocity);
 	  	}
 	  	
   	} 
@@ -281,14 +281,14 @@ void loop() {
   }
 
 
-  // ajuste de potenciometro lineal a logaritmico
+  // ajuste de potenciometro lineal a logaritmico (??)
   int lin2log(int index){
     return int(pow(1.00679, index)+1);
   }
 
   void modeSelection(void){
 
-    switch(modeA){
+    switch(mode){
       case 0:
         mode0();
         break;
@@ -300,14 +300,6 @@ void loop() {
       case 3:
         break;
       case 4:
-        break;
-      case 5:
-        break;
-      case 6:
-        break;
-      case 7:
-        break;
-      case 8:
         break;
     }
 
@@ -346,15 +338,15 @@ void loop() {
       digitalWrite(LEDS_RCLK, HIGH);
   
       int pitch = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
-      int velocity = 0x5f;
+      byte velocity = 0x5f;
   
       Serial.write(0x80);
       Serial.write(pitch);
-      Serial.write(0x5f);
+      Serial.write(velocity);
       
       Serial.write(0x90);
       Serial.write(pitch);
-      Serial.write(0x5f);
+      Serial.write(velocity);
 
       // se resetea el cronometro de paso
       timerStepA = millis();
@@ -410,15 +402,15 @@ void loop() {
 
     if(changedA){
       int pitch = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
-      int velocity = 0x5f;
+      byte velocity = 0x5f;
   
       Serial.write(0x80);
       Serial.write(pitch);
-      Serial.write(0x5f);
+      Serial.write(velocity);
       
       Serial.write(0x90);
       Serial.write(pitch);
-      Serial.write(0x5f);
+      Serial.write(velocity);
 
       // se resetea el cronometro de paso
       timerStepA = millis();
@@ -426,15 +418,15 @@ void loop() {
 
     if(changedB){
       int pitch = map(new_steps[activeStepB],0,1023,minPitch,maxPitch);
-      int velocity = 0x5f;
+      byte velocity = 0x5f;
   
       Serial.write(0x80);
       Serial.write(pitch);
-      Serial.write(0x5f);
+      Serial.write(velocity);
       
       Serial.write(0x90);
       Serial.write(pitch);
-      Serial.write(0x5f);
+      Serial.write(velocity);
 
       // se resetea el cronometro de paso
       timerStepB = millis();

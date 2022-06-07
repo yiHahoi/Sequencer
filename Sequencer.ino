@@ -165,9 +165,9 @@ void loop() {
   /*
     modes:
           0) 1x 16 step sequencer
-          1) 1x 8 step sequencer + variable step times
+          1) 2x 8 step sequencers async
           2) 2x 8 step sequencers sync
-          3) 2x 8 step sequencers async
+          3) 1x 8 step sequencer + variable step times
           4) MIDI CC's
 
     submodes:
@@ -196,9 +196,9 @@ void loop() {
     mode = map(modes[0],0,1023,0,4); // modo
     opt0 = map(modes[1],0,1023,0,3); // submodo
     opt1 = map(modes[2],0,1023,0,10); // escala
-    opt2 = map(modes[3],0,1023,0,9); // nota base
-    opt3 = map(modes[4],0,1023,0,9); // octava base
-    opt4 = map(modes[5],0,1023,0,9); // rango de octavas
+    opt2 = map(modes[3],0,1023,0,11); // nota base
+    opt3 = map(modes[4],0,1023,0,2); // octava base
+    opt4 = map(modes[5],0,1023,0,4); // rango de octavas
     rateA = modes[6];
     rateB = modes[7];
 
@@ -267,11 +267,11 @@ void loop() {
 	  	}
 	  	
 	  	if(new_pitchB != old_pitchB){
-	  	  Serial.write(0x80);
+	  	  Serial.write(0x81);
 	   		Serial.write(old_pitchB);
 			  Serial.write(velocity);
 		  
-			  Serial.write(0x90);
+			  Serial.write(0x91);
 			  Serial.write(new_pitchB);
 			  Serial.write(velocity);
 	  	}
@@ -305,10 +305,11 @@ void loop() {
 
   }
   
+  
   // modo 0
   void mode0(void){
     
-    // actualizar leds a través del 74hc595
+    // actualizar estados del modo 
     if(millis() - timerStepA >= step_periodA) {
   
       // se pasa al siguiente step
@@ -317,7 +318,8 @@ void loop() {
         activeStepA = 0;
 
       activeStepB = activeStepA; // para modo 0, pwm de seqB = seqA 
-  
+
+      // actualizar leds mediante 74hc595
       // primero se reinician los estados del shift register
       digitalWrite(LEDS_SRCLR, LOW);
       digitalWrite(LEDS_SRCLR, HIGH);
@@ -332,21 +334,21 @@ void loop() {
         digitalWrite(LEDS_SRCLK, LOW);
         digitalWrite(LEDS_SRCLK, HIGH);
       }
-  
+    
       // se actualiza el output final del 74hc595 con los bit ingresados
       digitalWrite(LEDS_RCLK, LOW);
       digitalWrite(LEDS_RCLK, HIGH);
   
-      int pitch = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
-      byte velocity = 0x5f;
+      //int pitch = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
+      //byte velocity = 0x5f;
   
-      Serial.write(0x80);
-      Serial.write(pitch);
-      Serial.write(velocity);
+      //Serial.write(0x80);
+      //Serial.write(pitch);
+      //Serial.write(velocity);
       
-      Serial.write(0x90);
-      Serial.write(pitch);
-      Serial.write(velocity);
+      //Serial.write(0x90);
+      //Serial.write(pitch);
+      //Serial.write(velocity);
 
       // se resetea el cronometro de paso
       timerStepA = millis();
@@ -357,7 +359,6 @@ void loop() {
   // modo 1
   void mode1(void){
 
-    // actualizar leds a través del 74hc595
     int changedA = 0;
     int changedB = 0;
 
@@ -377,6 +378,7 @@ void loop() {
       changedB = 1;
     }
 
+    // actualizar leds mediante 74hc595
     if(changedA || changedB){
       
       // primero se reinician los estados del shift register
@@ -401,32 +403,32 @@ void loop() {
     }
 
     if(changedA){
-      int pitch = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
-      byte velocity = 0x5f;
+      //int pitch = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
+      //byte velocity = 0x5f;
   
-      Serial.write(0x80);
-      Serial.write(pitch);
-      Serial.write(velocity);
+      //Serial.write(0x80);
+      //Serial.write(pitch);
+      //Serial.write(velocity);
       
-      Serial.write(0x90);
-      Serial.write(pitch);
-      Serial.write(velocity);
+      //Serial.write(0x90);
+      //Serial.write(pitch);
+      //Serial.write(velocity);
 
       // se resetea el cronometro de paso
       timerStepA = millis();
     }
 
     if(changedB){
-      int pitch = map(new_steps[activeStepB],0,1023,minPitch,maxPitch);
-      byte velocity = 0x5f;
+      //int pitch = map(new_steps[activeStepB],0,1023,minPitch,maxPitch);
+      //byte velocity = 0x5f;
   
-      Serial.write(0x80);
-      Serial.write(pitch);
-      Serial.write(velocity);
+      //Serial.write(0x81);
+      //Serial.write(pitch);
+      //Serial.write(velocity);
       
-      Serial.write(0x90);
-      Serial.write(pitch);
-      Serial.write(velocity);
+      //Serial.write(0x91);
+      //Serial.write(pitch);
+      //Serial.write(velocity);
 
       // se resetea el cronometro de paso
       timerStepB = millis();
@@ -436,6 +438,6 @@ void loop() {
     
   }
   
-  
+  // midi 60 es c4
   
   

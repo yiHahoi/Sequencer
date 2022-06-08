@@ -156,8 +156,18 @@ void loop() {
       modes[ctr] = analogRead(POTS2);
       old_steps[ctr] = new_steps[ctr];
       old_steps[ctr + 8] = new_steps[ctr + 8];
-      new_steps[ctr] = analogRead(POTS1);
-      new_steps[ctr + 8] = analogRead(POTS0);
+      
+      new_steps[ctr] = analogRead(POTS1); // sample 1
+      new_steps[ctr] += analogRead(POTS1); // oversample 1
+      new_steps[ctr] += analogRead(POTS1); // oversample 2
+      new_steps[ctr] += analogRead(POTS1); // oversample 3
+      
+      new_steps[ctr] = new_steps[ctr]/4; // final value
+      new_steps[ctr + 8] = analogRead(POTS0); // sample 1
+      new_steps[ctr + 8] += analogRead(POTS0); // oversample 1
+      new_steps[ctr + 8] += analogRead(POTS0); // oversample 2
+      new_steps[ctr + 8] += analogRead(POTS0); // oversample 3
+      new_steps[ctr + 8] = new_steps[ctr + 8]/4; // final value
     }
     
   }
@@ -233,19 +243,19 @@ void loop() {
   	// modo monofonico
   	if(mode == 0){
   	
-  	int new_pitch = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
-		int old_pitch = map(old_steps[activeStepA],0,1023,minPitch,maxPitch);
-		byte velocity = 0x5f;
-	  
-	  if(new_pitch != old_pitch){
-	    Serial.write(0x80);
-	   	Serial.write(old_pitch);
-			Serial.write(velocity);
-		  
-			Serial.write(0x90);
-			Serial.write(new_pitch);
-			Serial.write(velocity);
-	  }
+    	int new_pitch = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
+  		int old_pitch = map(old_steps[activeStepA],0,1023,minPitch,maxPitch);
+  		byte velocity = 0x5f;
+  	  
+  	  if(new_pitch != old_pitch){
+  	    Serial.write(0x80);
+  	   	Serial.write(old_pitch);
+  			Serial.write(velocity);
+  		  
+  			Serial.write(0x90);
+  			Serial.write(new_pitch);
+  			Serial.write(velocity);
+  	  }
 	  	
 	  // modo polifonico
   	} else if(mode == 1){
@@ -311,6 +321,8 @@ void loop() {
     
     // actualizar estados del modo 
     if(millis() - timerStepA >= step_periodA) {
+
+      int old_step_pitch = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
   
       // se pasa al siguiente step
       activeStepA += 1;
@@ -339,16 +351,16 @@ void loop() {
       digitalWrite(LEDS_RCLK, LOW);
       digitalWrite(LEDS_RCLK, HIGH);
   
-      //int pitch = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
-      //byte velocity = 0x5f;
+      int new_step_pitch = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
+      byte velocity = 0x5f;
   
-      //Serial.write(0x80);
-      //Serial.write(pitch);
-      //Serial.write(velocity);
+      Serial.write(0x80);
+      Serial.write(old_step_pitch);
+      Serial.write(velocity);
       
-      //Serial.write(0x90);
-      //Serial.write(pitch);
-      //Serial.write(velocity);
+      Serial.write(0x90);
+      Serial.write(new_step_pitch);
+      Serial.write(velocity);
 
       // se resetea el cronometro de paso
       timerStepA = millis();
@@ -361,6 +373,9 @@ void loop() {
 
     int changedA = 0;
     int changedB = 0;
+
+    int old_step_pitchA = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
+    int old_step_pitchB = map(new_steps[activeStepB],0,1023,minPitch,maxPitch);
 
     // se pasa al siguiente step del seqA?
     if(millis() - timerStepA >= step_periodA) {
@@ -403,32 +418,32 @@ void loop() {
     }
 
     if(changedA){
-      //int pitch = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
-      //byte velocity = 0x5f;
+      int new_step_pitchA = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
+      byte velocity = 0x5f;
   
-      //Serial.write(0x80);
-      //Serial.write(pitch);
-      //Serial.write(velocity);
+      Serial.write(0x80);
+      Serial.write(old_step_pitchA);
+      Serial.write(velocity);
       
-      //Serial.write(0x90);
-      //Serial.write(pitch);
-      //Serial.write(velocity);
+      Serial.write(0x90);
+      Serial.write(new_step_pitchA);
+      Serial.write(velocity);
 
       // se resetea el cronometro de paso
       timerStepA = millis();
     }
 
     if(changedB){
-      //int pitch = map(new_steps[activeStepB],0,1023,minPitch,maxPitch);
-      //byte velocity = 0x5f;
+      int new_step_pitchB = map(new_steps[activeStepB],0,1023,minPitch,maxPitch);
+      byte velocity = 0x5f;
   
-      //Serial.write(0x81);
-      //Serial.write(pitch);
-      //Serial.write(velocity);
+      Serial.write(0x81);
+      Serial.write(old_step_pitchB);
+      Serial.write(velocity);
       
-      //Serial.write(0x91);
-      //Serial.write(pitch);
-      //Serial.write(velocity);
+      Serial.write(0x91);
+      Serial.write(new_step_pitchB);
+      Serial.write(velocity);
 
       // se resetea el cronometro de paso
       timerStepB = millis();

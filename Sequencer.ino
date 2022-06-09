@@ -77,16 +77,22 @@ unsigned long step_periodA;       // si se usa unsigned int ocurre un overflow a
 unsigned long step_periodB;       // mientras que con unsigned long puede estar varios dias sin overflow
 unsigned long timerStepA;
 unsigned long timerStepB;
-int minPitch = 21;                // pitch midi minimo
-int maxPitch = 108;               // pitch midi maximo
+int minMidiPitch = 21;            // pitch midi minimo
+int maxMidiPitch = 108;           // pitch midi maximo
+int old_pitch;
+int new_pitch;
+int old_pitchA;
+int new_pitchA;
+int old_pitchB;
+int new_pitchB;
 
 // declaración de funciones
 int lin2log(int index);           // ajuste de potenciometro lineal a logaritmico
 void readPotentiometers(void);    // lectura adc de potenciómetros
 void scalePotValues(void);        // transforma valores analogos de potenciometro (0-1023) a rangos de uso
+void modeSelection(void);         // modos y opciones
 void updateCVOutputs(void);       // se actualizan las salidas pwm
 void updateMIDIOutputs(void);	    // se actualizan las salidas MIDI
-void modeSelection(void);         // modos y opciones
 
   // -------------------------------------------
 
@@ -177,8 +183,9 @@ void loop() {
           0) 1x 16 step sequencer
           1) 2x 8 step sequencers async
           2) 2x 8 step sequencers sync
-          3) 1x 8 step sequencer + variable step times
-          4) MIDI CC's
+          3) zig zag
+          4) 1x 8 step sequencer + variable step times
+          5) MIDI CC's
 
     submodes:
           0) normal
@@ -238,13 +245,18 @@ void loop() {
     }
   }
 
+  int mapToScale(int val, int* scale, int baseNote, int baseOct, int octRange){
+    
+    int new_pitch = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
+    return new_pitch;
+  }
+
   void updateMIDIOutputs(void){
   	
   	// modo monofonico
   	if(mode == 0){
   	
-    	int new_pitch = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
-  		int old_pitch = map(old_steps[activeStepA],0,1023,minPitch,maxPitch);
+      new_pitch = mapToScale(new_steps[activeStepA],scale,baseNote,baseOct,octRange);
   		byte velocity = 0x5f;
   	  
   	  if(new_pitch != old_pitch){

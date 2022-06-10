@@ -57,6 +57,7 @@ int hole_step_scale[6]          = {0,2,4,6,8,10};               // [ 1 , 2 , 3 ,
 
 // variables globales
 int modes[8];                     // lecturas analogas de los modos
+int old_modes[8];                 // lecturas analogas de los modos pasados
 int old_steps[TOTAL_STEPS];       // lecturas analogas de los pasos antiguos
 int new_steps[TOTAL_STEPS];       // lecturas analogas de los pasos nuevos
 int activeStepA;                  // indice del paso activo seqA
@@ -161,16 +162,23 @@ void loop() {
       digitalWrite(MUXB, ctr & 2);
       digitalWrite(MUXA, ctr & 1);
   
-      modes[ctr] = analogRead(POTS2);
+      //valores pasados
+      old_modes[ctr] = modes[ctr];
       old_steps[ctr] = new_steps[ctr];
       old_steps[ctr + 8] = new_steps[ctr + 8];
+
+      modes[ctr] = analogRead(POTS2); // sample 1
+      modes[ctr] += analogRead(POTS2); // oversample 1
+      modes[ctr] += analogRead(POTS2); // oversample 2
+      modes[ctr] += analogRead(POTS2); // oversample 3
+      modes[ctr] = modes[ctr]/4; // final value
       
       new_steps[ctr] = analogRead(POTS1); // sample 1
       new_steps[ctr] += analogRead(POTS1); // oversample 1
       new_steps[ctr] += analogRead(POTS1); // oversample 2
       new_steps[ctr] += analogRead(POTS1); // oversample 3
-      
       new_steps[ctr] = new_steps[ctr]/4; // final value
+      
       new_steps[ctr + 8] = analogRead(POTS0); // sample 1
       new_steps[ctr + 8] += analogRead(POTS0); // oversample 1
       new_steps[ctr + 8] += analogRead(POTS0); // oversample 2
@@ -212,7 +220,7 @@ void loop() {
 
   void scalePotValues(void){
     
-    mode = map(modes[0],0,1023,0,4); // modo
+    mode = map(modes[0],0,1023,0,5); // modo
     opt0 = map(modes[1],0,1023,0,3); // submodo
     opt1 = map(modes[2],0,1023,0,10); // escala
     opt2 = map(modes[3],0,1023,0,11); // nota base
@@ -319,10 +327,16 @@ void loop() {
         mode1();
         break;
       case 2:
+        mode2();
         break;
       case 3:
+        mode3();
         break;
       case 4:
+        mode4();
+        break;
+      case 5:
+        mode5();
         break;
     }
 
@@ -464,6 +478,40 @@ void loop() {
 
     
     
+  }
+
+  // modo 2
+  void mode2(void){
+  
+  }
+
+  // modo 3
+  void mode3(void){
+  
+  }
+
+  // modo 4
+  void mode4(void){
+  
+  }
+
+  // modo 5 / MIDI CC's
+  void mode5(void){
+
+    /* //codigo de arduino para interfaz midi, modificar para enviar cc's en modo 5 del secuenciador 
+    new_time = millis();
+    if(new_time - prev_time >= step_time){
+      prev_time = new_time;
+      pot_new_1 = analogRead(0) >> 3;
+      if(pot_new_1 != pot_last_1)
+      {
+        pot_last_1 = pot_new_1;
+        Serial.write(0xb0);
+        Serial.write(0x01);
+        Serial.write(pot_new_1);
+      }
+    }
+    */    
   }
   
   // midi 60 es c4

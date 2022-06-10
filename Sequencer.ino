@@ -79,6 +79,8 @@ unsigned long timerStepA;
 unsigned long timerStepB;
 int minMidiPitch = 21;            // pitch midi minimo
 int maxMidiPitch = 108;           // pitch midi maximo
+int minPitch = 21;            // pitch midi minimo
+int maxPitch = 108;           // pitch midi maximo
 int old_pitch;
 int new_pitch;
 int old_pitchA;
@@ -235,6 +237,12 @@ void loop() {
   
   }
 
+  int mapToScale(int val, int* scale, int baseNote, int baseOct, int octRange){
+    
+    int new_pitch = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
+    return new_pitch;
+  }
+  
   void updateCVOutputs(void){
     if(LOG_POTS){
       OCR1A = lin2log(new_steps[activeStepA]);
@@ -243,12 +251,6 @@ void loop() {
       OCR1A = new_steps[activeStepA];
       OCR1B = new_steps[activeStepB];
     }
-  }
-
-  int mapToScale(int val, int* scale, int baseNote, int baseOct, int octRange){
-    
-    int new_pitch = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
-    return new_pitch;
   }
 
   void updateMIDIOutputs(void){
@@ -272,10 +274,10 @@ void loop() {
 	  // modo polifonico
   	} else if(mode == 1){
   	
-  	  int new_pitchA = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
-		  int old_pitchA = map(old_steps[activeStepA],0,1023,minPitch,maxPitch);
-  		int new_pitchB = map(new_steps[activeStepB],0,1023,minPitch,maxPitch);
-		  int old_pitchB = map(old_steps[activeStepB],0,1023,minPitch,maxPitch);
+  	  new_pitchA = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
+		  old_pitchA = map(old_steps[activeStepA],0,1023,minPitch,maxPitch);
+  		new_pitchB = map(new_steps[activeStepB],0,1023,minPitch,maxPitch);
+		  old_pitchB = map(old_steps[activeStepB],0,1023,minPitch,maxPitch);
 		  byte velocity = 0x5f;
 	  
 	  	if(new_pitchA != old_pitchA){
@@ -301,7 +303,6 @@ void loop() {
   	} 
 
   }
-
 
   // ajuste de potenciometro lineal a logaritmico (??)
   int lin2log(int index){

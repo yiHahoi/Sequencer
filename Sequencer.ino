@@ -268,7 +268,7 @@ void loop() {
       old_pitchA = new_pitchA;
       new_pitchA = mapToScale(new_steps_analog[activeStepA], 0, 0, 0, 0);
   	  
-  	  if(new_pitch != old_pitch){
+  	  if(new_pitchA != old_pitchA){
   	    Serial.write(0x80);
   	   	Serial.write(old_pitchA);
   			Serial.write(velocity);
@@ -281,10 +281,10 @@ void loop() {
 	  // modo polifonico
   	} else if(mode == 1){
   	  
-  	  old_pitchA = map(old_steps[activeStepA],0,1023,minPitch,maxPitch);
-  	  new_pitchA = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
-		  old_pitchB = map(old_steps[activeStepB],0,1023,minPitch,maxPitch);
-  		new_pitchB = map(new_steps[activeStepB],0,1023,minPitch,maxPitch);
+  	  old_pitchA = new_pitchA;
+      old_pitchB = new_pitchB;
+  	  new_pitchA = mapToScale(new_steps_analog[activeStepA], 0, 0, 0, 0);
+		  new_pitchB = mapToScale(new_steps_analog[activeStepB], 0, 0, 0, 0);
 	  
 	  	if(new_pitchA != old_pitchA){
 	  	  Serial.write(0x80);

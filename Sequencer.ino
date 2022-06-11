@@ -97,7 +97,7 @@ void readPotentiometers(void);    // lectura adc de potenciómetros
 void scalePotValues(void);        // transforma valores analogos de potenciometro (0-1023) a rangos de uso
 void modeSelection(void);         // modos y opciones
 void updateCVOutputs(void);       // se actualizan las salidas pwm
-void updateMIDIOutputs(void);	    // se actualizan las salidas MIDI
+void updateMIDIOutputs(void);      // se actualizan las salidas MIDI
 
   // -------------------------------------------
 
@@ -274,52 +274,52 @@ void loop() {
   }
 
   void updateMIDIOutputs(void){
-  	
-  	// modo monofonico
-  	if(mode == 0){
-  	
+    
+    // modo monofonico
+    if(mode == 0){
+    
       old_pitchA = new_pitchA;
       new_pitchA = mapToScale(new_steps_analog[activeStepA], 0, 0, 0, 0);
-  	  
-  	  if(new_pitchA != old_pitchA){
-  	    Serial.write(0x80);
-  	   	Serial.write(old_pitchA);
-  			Serial.write(velocity);
-  		  
-  			Serial.write(0x90);
-  			Serial.write(new_pitchA);
-  			Serial.write(velocity);
-  	  }
-	  	
-	  // modo polifonico
-  	} else if(mode == 1){
-  	  
-  	  old_pitchA = new_pitchA;
+      
+      if(new_pitchA != old_pitchA){
+        Serial.write(0x80);
+        Serial.write(old_pitchA);
+        Serial.write(velocity);
+        
+        Serial.write(0x90);
+        Serial.write(new_pitchA);
+        Serial.write(velocity);
+      }
+      
+    // modo polifonico
+    } else if(mode == 1){
+      
+      old_pitchA = new_pitchA;
       old_pitchB = new_pitchB;
-  	  new_pitchA = mapToScale(new_steps_analog[activeStepA], 0, 0, 0, 0);
-		  new_pitchB = mapToScale(new_steps_analog[activeStepB], 0, 0, 0, 0);
-	  
-	  	if(new_pitchA != old_pitchA){
-	  	  Serial.write(0x80);
-	   		Serial.write(old_pitchA);
-			  Serial.write(velocity);
-		  
-			  Serial.write(0x90);
-			  Serial.write(new_pitchA);
-			  Serial.write(velocity);
-	  	}
-	  	
-	  	if(new_pitchB != old_pitchB){
-	  	  Serial.write(0x81);
-	   		Serial.write(old_pitchB);
-			  Serial.write(velocity);
-		  
-			  Serial.write(0x91);
-			  Serial.write(new_pitchB);
-			  Serial.write(velocity);
-	  	}
-	  	
-  	} 
+      new_pitchA = mapToScale(new_steps_analog[activeStepA], 0, 0, 0, 0);
+      new_pitchB = mapToScale(new_steps_analog[activeStepB], 0, 0, 0, 0);
+    
+      if(new_pitchA != old_pitchA){
+        Serial.write(0x80);
+        Serial.write(old_pitchA);
+        Serial.write(velocity);
+      
+        Serial.write(0x90);
+        Serial.write(new_pitchA);
+        Serial.write(velocity);
+      }
+      
+      if(new_pitchB != old_pitchB){
+        Serial.write(0x81);
+        Serial.write(old_pitchB);
+        Serial.write(velocity);
+      
+        Serial.write(0x91);
+        Serial.write(new_pitchB);
+        Serial.write(velocity);
+      }
+      
+    } 
 
   }
 

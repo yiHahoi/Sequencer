@@ -8,31 +8,31 @@
 // 16 leds -> 2x cd74hc595
 // salidas CV y GATE, opciones de lenght, trimmeo de CV superior e inferior, multiplicador de CV y rate (en sync),
 // modo sincronizado, inversión y reseteo de secuencia
-// interpolación (polinomial?) entre pasos para portamento/legato/smooth, calculando un nuevo CV cada 5ms (?)
+// interpolación entre pasos para portamento/legato/smooth, calculando un nuevo CV cada 5ms (?)
 // trimmeo de potenciómetros para reducir zona sin audio
 // modo random para rates y steps
 // -----------------------------------------------------------------------------------------------------------------
 
 
 // 3x cd4051 (24 potenciometros)
-#define MUXA        A0    // bit0 para seleccion de canal del mux
-#define MUXB        A1    // bit1 para seleccion de canal del mux
-#define MUXC        A2    // bit2 para seleccion de canal del mux
-#define POTS0       A3    // adc conectado a mux analogo 1 (8 pots del secuenciador 1)
-#define POTS1       A4    // adc conectado a mux analogo 2 (8 pots del secuenciador 2)
-#define POTS2       A5    // adc conectado a mux analogo 3 (8 pots de control para secuenciadores 1 y 2)
+#define MUXA        A0      // bit0 para seleccion de canal del mux
+#define MUXB        A1      // bit1 para seleccion de canal del mux
+#define MUXC        A2      // bit2 para seleccion de canal del mux
+#define POTS0       A3      // adc conectado a mux analogo 1 (8 pots del secuenciador 1)
+#define POTS1       A4      // adc conectado a mux analogo 2 (8 pots del secuenciador 2)
+#define POTS2       A5      // adc conectado a mux analogo 3 (8 pots de control para secuenciadores 1 y 2)
 
 // 2x cd74hc595 (16 leds) conectados en "daisy chain" para simplificar la comunicación
-#define LEDS_SRCLR  4     // señal para reiniciar los estados del shift register de leds
-#define LEDS_SRCLK  5     // señal para activar corrimiento de bits en el shift register de leds
-#define LEDS_RCLK   6     // señal para actualizar valores de output del shift register de leds
-#define LEDS_SER    7     // dato de entrada (bit) para shift register de leds
+#define LEDS_SRCLR  4       // señal para reiniciar los estados del shift register de leds
+#define LEDS_SRCLK  5       // señal para activar corrimiento de bits en el shift register de leds
+#define LEDS_RCLK   6       // señal para actualizar valores de output del shift register de leds
+#define LEDS_SER    7       // dato de entrada (bit) para shift register de leds
 
 // 2x GATE + 2x CV
-#define CVA         9     // señal pwm CVA
-#define CVB        10     // señal pwm CVB
-#define GATEA      11     // señal gateA
-#define GATEB      12     // señal gateB (DATASHEET NO PERMITE A6 o A7 como output digital)
+#define CVA         9       // señal pwm CVA
+#define CVB        10       // señal pwm CVB
+#define GATEA      11       // señal gateA
+#define GATEB      12       // señal gateB (DATASHEET NO PERMITE A6 o A7 como output digital)
 
 // parámetros varios
 #define SEQA_TOTAL_STEPS 8  // total de pasos del secuenciador A
@@ -87,7 +87,9 @@ int new_pitchA;
 int old_pitchB;
 int new_pitchB;
 byte velocity = 0x5f;
-int inverterConstant = 1;
+int inverterConstantA = 1;
+int inverterConstantB = 1;
+int single_sequencer_mode = 1;      // flag que informa si se encuentra en un modo de 1x seq de 16 pasos o 2x seq de 8 pasos
 
 // declaración de funciones
 int lin2log(int index);           // ajuste de potenciometro lineal a logaritmico
@@ -246,19 +248,29 @@ void loop() {
   }
 
   int mapToScale(int val, int* scale, int baseNote, int baseOct, int octRange){
-    
-    int new_pitch = map(val,0,1023,minPitch,maxPitch);
-    return new_pitch;
+    return(map(val,0,1023,minPitch,maxPitch));
   }
   
   void updateCVOutputs(void){
-    if(LOG_POTS){
-      OCR1A = lin2log(new_steps_analog[activeStepA]);
-      OCR1B = lin2log(new_steps_analog[activeStepB]);
+    if(single_sequencer_mode){
+      if(LOG_POTS){
+        OCR1A = lin2log(new_steps_analog[activeStepA]);
+        OCR1B = lin2log(new_steps_analog[activeStepA]);
+      } else {
+        OCR1A = new_steps_analog[activeStepA];
+        OCR1B = new_steps_analog[activeStepA];
+      }
     } else {
-      OCR1A = new_steps_analog[activeStepA];
-      OCR1B = new_steps_analog[activeStepB];
+      if(LOG_POTS){
+        OCR1A = lin2log(new_steps_analog[activeStepA]);
+        OCR1B = lin2log(new_steps_analog[activeStepB]);
+      } else {
+        OCR1A = new_steps_analog[activeStepA];
+        OCR1B = new_steps_analog[activeStepB];
+      }  
     }
+    
+
   }
 
   void updateMIDIOutputs(void){
@@ -344,6 +356,8 @@ void loop() {
   
   // modo 0
   void mode0(void){
+
+    single_sequencer_mode = 1;
     
     // actualizar estados del modo 
     if(millis() - timerStepA >= step_periodA) {
@@ -354,11 +368,11 @@ void loop() {
         if (activeStepA >= TOTAL_STEPS)
           activeStepA = 0;
       } else if(opt0 == 1){ // submodo full and back
-        activeStepA += inverterConstant;
+        activeStepA += inverterConstantA;
         if (activeStepA >= TOTAL_STEPS - 1)
-          inverterConstant = -1;
+          inverterConstantA = -1;
         else if(activeStepA <= 0)
-          inverterConstant = 1;
+          inverterConstantA = 1;
       } else if(opt0 == 2){ // submodo inverse
         activeStepA -= 1;
         if (activeStepA < 0)
@@ -367,7 +381,7 @@ void loop() {
         activeStepA = random(0,TOTAL_STEPS);
       }
 
-      activeStepB = activeStepA; // para modo 0, pwm de seqB = seqA 
+      new_steps_analog[activeStepB] = new_steps_analog[activeStepA]; // para modo 0, pwm de seqB = seqA 
 
       // actualizar leds mediante 74hc595
       // primero se reinician los estados del shift register
@@ -412,6 +426,8 @@ void loop() {
     int changedA = 0;
     int changedB = 0;
 
+    single_sequencer_mode = 0;
+
     // se pasa al siguiente step del seqA?
     if(millis() - timerStepA >= step_periodA) {
 
@@ -421,11 +437,11 @@ void loop() {
         if (activeStepA >= SEQA_TOTAL_STEPS)
           activeStepA = 0;
       } else if(opt0 == 1){ // submodo full and back
-        activeStepA += inverterConstant;
+        activeStepA += inverterConstantA;
         if (activeStepA >= SEQA_TOTAL_STEPS - 1)
-          inverterConstant = -1;
+          inverterConstantA = -1;
         else if(activeStepA <= 0)
-          inverterConstant = 1;
+          inverterConstantA = 1;
       } else if(opt0 == 2){ // submodo inverse
         activeStepA -= 1;
         if (activeStepA < 0)
@@ -443,18 +459,18 @@ void loop() {
       // se pasa al siguiente step
       if(opt0 == 0){ // submodo full
         activeStepB += 1;
-        if (activeStepB >= SEQB_TOTAL_STEPS)
-          activeStepB = 0;
+        if (activeStepB >= TOTAL_STEPS)
+          activeStepB = SEQA_TOTAL_STEPS;
       } else if(opt0 == 1){ // submodo full and back
-        activeStepB += inverterConstant;
-        if (activeStepB >= SEQB_TOTAL_STEPS - 1)
-          inverterConstant = -1;
-        else if(activeStepB <= 0)
-          inverterConstant = 1;
+        activeStepB += inverterConstantB;
+        if (activeStepB >= TOTAL_STEPS - 1)
+          inverterConstantB = -1;
+        else if(activeStepB <= SEQA_TOTAL_STEPS)
+          inverterConstantB = 1;
       } else if(opt0 == 2){ // submodo inverse
         activeStepB -= 1;
-        if (activeStepB < 0)
-          activeStepB = SEQB_TOTAL_STEPS - 1;
+        if (activeStepB < SEQA_TOTAL_STEPS)
+          activeStepB = TOTAL_STEPS - 1;
       } else if(opt0 == 3){ // submodo random
         activeStepB = random(SEQA_TOTAL_STEPS, TOTAL_STEPS);
       }

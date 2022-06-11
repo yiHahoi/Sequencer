@@ -8,31 +8,31 @@
 // 16 leds -> 2x cd74hc595
 // salidas CV y GATE, opciones de lenght, trimmeo de CV superior e inferior, multiplicador de CV y rate (en sync),
 // modo sincronizado, inversión y reseteo de secuencia
-// interpolación (polinomial?) entre pasos para portamento/legato/smooth, calculando un nuevo CV cada 5ms (?)
+// interpolación entre pasos para portamento/legato/smooth, calculando un nuevo CV cada 5ms (?)
 // trimmeo de potenciómetros para reducir zona sin audio
 // modo random para rates y steps
 // -----------------------------------------------------------------------------------------------------------------
 
 
 // 3x cd4051 (24 potenciometros)
-#define MUXA        A0    // bit0 para seleccion de canal del mux
-#define MUXB        A1    // bit1 para seleccion de canal del mux
-#define MUXC        A2    // bit2 para seleccion de canal del mux
-#define POTS0       A3    // adc conectado a mux analogo 1 (8 pots del secuenciador 1)
-#define POTS1       A4    // adc conectado a mux analogo 2 (8 pots del secuenciador 2)
-#define POTS2       A5    // adc conectado a mux analogo 3 (8 pots de control para secuenciadores 1 y 2)
+#define MUXA        A0      // bit0 para seleccion de canal del mux
+#define MUXB        A1      // bit1 para seleccion de canal del mux
+#define MUXC        A2      // bit2 para seleccion de canal del mux
+#define POTS0       A3      // adc conectado a mux analogo 1 (8 pots del secuenciador 1)
+#define POTS1       A4      // adc conectado a mux analogo 2 (8 pots del secuenciador 2)
+#define POTS2       A5      // adc conectado a mux analogo 3 (8 pots de control para secuenciadores 1 y 2)
 
 // 2x cd74hc595 (16 leds) conectados en "daisy chain" para simplificar la comunicación
-#define LEDS_SRCLR  4     // señal para reiniciar los estados del shift register de leds
-#define LEDS_SRCLK  5     // señal para activar corrimiento de bits en el shift register de leds
-#define LEDS_RCLK   6     // señal para actualizar valores de output del shift register de leds
-#define LEDS_SER    7     // dato de entrada (bit) para shift register de leds
+#define LEDS_SRCLR  4       // señal para reiniciar los estados del shift register de leds
+#define LEDS_SRCLK  5       // señal para activar corrimiento de bits en el shift register de leds
+#define LEDS_RCLK   6       // señal para actualizar valores de output del shift register de leds
+#define LEDS_SER    7       // dato de entrada (bit) para shift register de leds
 
 // 2x GATE + 2x CV
-#define CVA         9     // señal pwm CVA
-#define CVB        10     // señal pwm CVB
-#define GATEA      11     // señal gateA
-#define GATEB      12     // señal gateB (DATASHEET NO PERMITE A6 o A7 como output digital)
+#define CVA         9       // señal pwm CVA
+#define CVB        10       // señal pwm CVB
+#define GATEA      11       // señal gateA
+#define GATEB      12       // señal gateB (DATASHEET NO PERMITE A6 o A7 como output digital)
 
 // parámetros varios
 #define SEQA_TOTAL_STEPS 8  // total de pasos del secuenciador A
@@ -56,37 +56,48 @@ int minor_pentatonic_scale[5]   = {0,3,5,7,10};                 // [ 1 ,b3 , 4 ,
 int hole_step_scale[6]          = {0,2,4,6,8,10};               // [ 1 , 2 , 3 ,#4 ,#5 ,#6 ]
 
 // variables globales
-int modes[8];                     // lecturas analogas de los modos
-int old_steps[TOTAL_STEPS];       // lecturas analogas de los pasos antiguos
-int new_steps[TOTAL_STEPS];       // lecturas analogas de los pasos nuevos
-int activeStepA;                  // indice del paso activo seqA
-int activeStepB;                  // indice del paso activo seqB
-int mode;                         // modo secuenciador
-int opt0;                         // opcion 0 
-int opt1;                         // opcion 1
-int opt2;                         // opcion 2
-int opt3;                         // opcion 3
-int opt4;                         // opcion 4
-int rateA;                        // frecuencia con la que cambia de estado el secuenciador A
-int rateB;                        // frecuencia con la que cambia de estado el secuenciador B
-float normalized_rateA;           // frecuencia del secuenciador A en escala de 0.0 a 1.0 que representa a MIN_RATE y MAX_RATE
-float normalized_rateB;           // frecuencia del secuenciador B en escala de 0.0 a 1.0 que representa a MIN_RATE y MAX_RATE
-float final_rateA;                // frecuencia del secuenciador A en Hz como decimal
-float final_rateB;                // frecuencia del secuenciador B en Hz como decimal
-unsigned long step_periodA;       // si se usa unsigned int ocurre un overflow a los 64 segundos y se va todo al carajo xd
-unsigned long step_periodB;       // mientras que con unsigned long puede estar varios dias sin overflow
+int modes[8];                       // lecturas analogas de los modos
+int old_modes[8];                   // lecturas analogas de los modos pasados
+int old_steps_analog[TOTAL_STEPS];  // lecturas analogas de los pasos antiguos
+int new_steps_analog[TOTAL_STEPS];  // lecturas analogas de los pasos nuevos
+int activeStepA;                    // indice del paso activo seqA
+int activeStepB;                    // indice del paso activo seqB
+int mode;                           // modo secuenciador
+int opt0;                           // opcion 0 
+int opt1;                           // opcion 1
+int opt2;                           // opcion 2
+int opt3;                           // opcion 3
+int opt4;                           // opcion 4
+int rateA;                          // frecuencia con la que cambia de estado el secuenciador A
+int rateB;                          // frecuencia con la que cambia de estado el secuenciador B
+float normalized_rateA;             // frecuencia del secuenciador A en escala de 0.0 a 1.0 que representa a MIN_RATE y MAX_RATE
+float normalized_rateB;             // frecuencia del secuenciador B en escala de 0.0 a 1.0 que representa a MIN_RATE y MAX_RATE
+float final_rateA;                  // frecuencia del secuenciador A en Hz como decimal
+float final_rateB;                  // frecuencia del secuenciador B en Hz como decimal
+unsigned long step_periodA;         // si se usa unsigned int ocurre un overflow a los 64 segundos y se va todo al carajo xd
+unsigned long step_periodB;         // mientras que con unsigned long puede estar varios dias sin overflow
 unsigned long timerStepA;
 unsigned long timerStepB;
-int minPitch = 21;                // pitch midi minimo
-int maxPitch = 108;               // pitch midi maximo
+int minMidiPitch = 21;              // pitch midi minimo
+int maxMidiPitch = 108;             // pitch midi maximo
+int minPitch = 21;                  // pitch midi minimo
+int maxPitch = 108;                 // pitch midi maximo
+int old_pitchA;
+int new_pitchA;
+int old_pitchB;
+int new_pitchB;
+byte velocity = 0x5f;
+int inverterConstantA = 1;
+int inverterConstantB = 1;
+int single_sequencer_mode = 1;      // flag que informa si se encuentra en un modo de 1x seq de 16 pasos o 2x seq de 8 pasos
 
 // declaración de funciones
 int lin2log(int index);           // ajuste de potenciometro lineal a logaritmico
 void readPotentiometers(void);    // lectura adc de potenciómetros
 void scalePotValues(void);        // transforma valores analogos de potenciometro (0-1023) a rangos de uso
-void updateCVOutputs(void);       // se actualizan las salidas pwm
-void updateMIDIOutputs(void);	    // se actualizan las salidas MIDI
 void modeSelection(void);         // modos y opciones
+void updateCVOutputs(void);       // se actualizan las salidas pwm
+void updateMIDIOutputs(void);      // se actualizan las salidas MIDI
 
   // -------------------------------------------
 
@@ -153,21 +164,28 @@ void loop() {
       digitalWrite(MUXB, ctr & 2);
       digitalWrite(MUXA, ctr & 1);
   
-      modes[ctr] = analogRead(POTS2);
-      old_steps[ctr] = new_steps[ctr];
-      old_steps[ctr + 8] = new_steps[ctr + 8];
+      //valores pasados
+      old_modes[ctr] = modes[ctr];
+      old_steps_analog[ctr] = new_steps_analog[ctr];
+      old_steps_analog[ctr + 8] = new_steps_analog[ctr + 8];
+
+      modes[ctr] = analogRead(POTS2); // sample 1
+      modes[ctr] += analogRead(POTS2); // oversample 1
+      modes[ctr] += analogRead(POTS2); // oversample 2
+      modes[ctr] += analogRead(POTS2); // oversample 3
+      modes[ctr] = modes[ctr]/4; // final value
       
-      new_steps[ctr] = analogRead(POTS1); // sample 1
-      new_steps[ctr] += analogRead(POTS1); // oversample 1
-      new_steps[ctr] += analogRead(POTS1); // oversample 2
-      new_steps[ctr] += analogRead(POTS1); // oversample 3
+      new_steps_analog[ctr] = analogRead(POTS1); // sample 1
+      new_steps_analog[ctr] += analogRead(POTS1); // oversample 1
+      new_steps_analog[ctr] += analogRead(POTS1); // oversample 2
+      new_steps_analog[ctr] += analogRead(POTS1); // oversample 3
+      new_steps_analog[ctr] = new_steps_analog[ctr]/4; // final value
       
-      new_steps[ctr] = new_steps[ctr]/4; // final value
-      new_steps[ctr + 8] = analogRead(POTS0); // sample 1
-      new_steps[ctr + 8] += analogRead(POTS0); // oversample 1
-      new_steps[ctr + 8] += analogRead(POTS0); // oversample 2
-      new_steps[ctr + 8] += analogRead(POTS0); // oversample 3
-      new_steps[ctr + 8] = new_steps[ctr + 8]/4; // final value
+      new_steps_analog[ctr + 8] = analogRead(POTS0); // sample 1
+      new_steps_analog[ctr + 8] += analogRead(POTS0); // oversample 1
+      new_steps_analog[ctr + 8] += analogRead(POTS0); // oversample 2
+      new_steps_analog[ctr + 8] += analogRead(POTS0); // oversample 3
+      new_steps_analog[ctr + 8] = new_steps_analog[ctr + 8]/4; // final value
     }
     
   }
@@ -177,8 +195,9 @@ void loop() {
           0) 1x 16 step sequencer
           1) 2x 8 step sequencers async
           2) 2x 8 step sequencers sync
-          3) 1x 8 step sequencer + variable step times
-          4) MIDI CC's
+          3) zig zag
+          4) 1x 8 step sequencer + variable step times
+          5) MIDI CC's
 
     submodes:
           0) normal
@@ -203,7 +222,7 @@ void loop() {
 
   void scalePotValues(void){
     
-    mode = map(modes[0],0,1023,0,4); // modo
+    mode = map(modes[0],0,1023,0,5); // modo
     opt0 = map(modes[1],0,1023,0,3); // submodo
     opt1 = map(modes[2],0,1023,0,10); // escala
     opt2 = map(modes[3],0,1023,0,11); // nota base
@@ -228,68 +247,81 @@ void loop() {
   
   }
 
+  int mapToScale(int val, int* scale, int baseNote, int baseOct, int octRange){
+    return(map(val,0,1023,minPitch,maxPitch));
+  }
+  
   void updateCVOutputs(void){
-    if(LOG_POTS){
-      OCR1A = lin2log(new_steps[activeStepA]);
-      OCR1B = lin2log(new_steps[activeStepB]);
+    if(single_sequencer_mode){
+      if(LOG_POTS){
+        OCR1A = lin2log(new_steps_analog[activeStepA]);
+        OCR1B = lin2log(new_steps_analog[activeStepA]);
+      } else {
+        OCR1A = new_steps_analog[activeStepA];
+        OCR1B = new_steps_analog[activeStepA];
+      }
     } else {
-      OCR1A = new_steps[activeStepA];
-      OCR1B = new_steps[activeStepB];
+      if(LOG_POTS){
+        OCR1A = lin2log(new_steps_analog[activeStepA]);
+        OCR1B = lin2log(new_steps_analog[activeStepB]);
+      } else {
+        OCR1A = new_steps_analog[activeStepA];
+        OCR1B = new_steps_analog[activeStepB];
+      }  
     }
+    
+
   }
 
   void updateMIDIOutputs(void){
-  	
-  	// modo monofonico
-  	if(mode == 0){
-  	
-    	int new_pitch = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
-  		int old_pitch = map(old_steps[activeStepA],0,1023,minPitch,maxPitch);
-  		byte velocity = 0x5f;
-  	  
-  	  if(new_pitch != old_pitch){
-  	    Serial.write(0x80);
-  	   	Serial.write(old_pitch);
-  			Serial.write(velocity);
-  		  
-  			Serial.write(0x90);
-  			Serial.write(new_pitch);
-  			Serial.write(velocity);
-  	  }
-	  	
-	  // modo polifonico
-  	} else if(mode == 1){
-  	
-  	  int new_pitchA = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
-		  int old_pitchA = map(old_steps[activeStepA],0,1023,minPitch,maxPitch);
-  		int new_pitchB = map(new_steps[activeStepB],0,1023,minPitch,maxPitch);
-		  int old_pitchB = map(old_steps[activeStepB],0,1023,minPitch,maxPitch);
-		  byte velocity = 0x5f;
-	  
-	  	if(new_pitchA != old_pitchA){
-	  	  Serial.write(0x80);
-	   		Serial.write(old_pitchA);
-			  Serial.write(velocity);
-		  
-			  Serial.write(0x90);
-			  Serial.write(new_pitchA);
-			  Serial.write(velocity);
-	  	}
-	  	
-	  	if(new_pitchB != old_pitchB){
-	  	  Serial.write(0x81);
-	   		Serial.write(old_pitchB);
-			  Serial.write(velocity);
-		  
-			  Serial.write(0x91);
-			  Serial.write(new_pitchB);
-			  Serial.write(velocity);
-	  	}
-	  	
-  	} 
+    
+    // modo monofonico
+    if(mode == 0){
+    
+      old_pitchA = new_pitchA;
+      new_pitchA = mapToScale(new_steps_analog[activeStepA], 0, 0, 0, 0);
+      
+      if(new_pitchA != old_pitchA){
+        Serial.write(0x80);
+        Serial.write(old_pitchA);
+        Serial.write(velocity);
+        
+        Serial.write(0x90);
+        Serial.write(new_pitchA);
+        Serial.write(velocity);
+      }
+      
+    // modo polifonico
+    } else if(mode == 1){
+      
+      old_pitchA = new_pitchA;
+      old_pitchB = new_pitchB;
+      new_pitchA = mapToScale(new_steps_analog[activeStepA], 0, 0, 0, 0);
+      new_pitchB = mapToScale(new_steps_analog[activeStepB], 0, 0, 0, 0);
+    
+      if(new_pitchA != old_pitchA){
+        Serial.write(0x80);
+        Serial.write(old_pitchA);
+        Serial.write(velocity);
+      
+        Serial.write(0x90);
+        Serial.write(new_pitchA);
+        Serial.write(velocity);
+      }
+      
+      if(new_pitchB != old_pitchB){
+        Serial.write(0x81);
+        Serial.write(old_pitchB);
+        Serial.write(velocity);
+      
+        Serial.write(0x91);
+        Serial.write(new_pitchB);
+        Serial.write(velocity);
+      }
+      
+    } 
 
   }
-
 
   // ajuste de potenciometro lineal a logaritmico (??)
   int lin2log(int index){
@@ -306,10 +338,16 @@ void loop() {
         mode1();
         break;
       case 2:
+        mode2();
         break;
       case 3:
+        mode3();
         break;
       case 4:
+        mode4();
+        break;
+      case 5:
+        mode5();
         break;
     }
 
@@ -318,18 +356,32 @@ void loop() {
   
   // modo 0
   void mode0(void){
+
+    single_sequencer_mode = 1;
     
     // actualizar estados del modo 
     if(millis() - timerStepA >= step_periodA) {
 
-      int old_step_pitch = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
-  
       // se pasa al siguiente step
-      activeStepA += 1;
-      if (activeStepA >= TOTAL_STEPS)
-        activeStepA = 0;
+      if(opt0 == 0){ // submodo full
+        activeStepA += 1;
+        if (activeStepA >= TOTAL_STEPS)
+          activeStepA = 0;
+      } else if(opt0 == 1){ // submodo full and back
+        activeStepA += inverterConstantA;
+        if (activeStepA >= TOTAL_STEPS - 1)
+          inverterConstantA = -1;
+        else if(activeStepA <= 0)
+          inverterConstantA = 1;
+      } else if(opt0 == 2){ // submodo inverse
+        activeStepA -= 1;
+        if (activeStepA < 0)
+          activeStepA = TOTAL_STEPS - 1;
+      } else if(opt0 == 3){ // submodo random
+        activeStepA = random(0,TOTAL_STEPS);
+      }
 
-      activeStepB = activeStepA; // para modo 0, pwm de seqB = seqA 
+      new_steps_analog[activeStepB] = new_steps_analog[activeStepA]; // para modo 0, pwm de seqB = seqA 
 
       // actualizar leds mediante 74hc595
       // primero se reinician los estados del shift register
@@ -350,16 +402,16 @@ void loop() {
       // se actualiza el output final del 74hc595 con los bit ingresados
       digitalWrite(LEDS_RCLK, LOW);
       digitalWrite(LEDS_RCLK, HIGH);
-  
-      int new_step_pitch = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
-      byte velocity = 0x5f;
+
+      old_pitchA = new_pitchA;
+      new_pitchA = mapToScale(new_steps_analog[activeStepA], 0, 0, 0, 0);
   
       Serial.write(0x80);
-      Serial.write(old_step_pitch);
+      Serial.write(old_pitchA);
       Serial.write(velocity);
       
       Serial.write(0x90);
-      Serial.write(new_step_pitch);
+      Serial.write(new_pitchA);
       Serial.write(velocity);
 
       // se resetea el cronometro de paso
@@ -374,23 +426,56 @@ void loop() {
     int changedA = 0;
     int changedB = 0;
 
-    int old_step_pitchA = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
-    int old_step_pitchB = map(new_steps[activeStepB],0,1023,minPitch,maxPitch);
+    single_sequencer_mode = 0;
 
     // se pasa al siguiente step del seqA?
     if(millis() - timerStepA >= step_periodA) {
-      activeStepA += 1;
-      if (activeStepA >= SEQA_TOTAL_STEPS)
-        activeStepA = 0;
+
+      // se pasa al siguiente step
+      if(opt0 == 0){ // submodo full
+        activeStepA += 1;
+        if (activeStepA >= SEQA_TOTAL_STEPS)
+          activeStepA = 0;
+      } else if(opt0 == 1){ // submodo full and back
+        activeStepA += inverterConstantA;
+        if (activeStepA >= SEQA_TOTAL_STEPS - 1)
+          inverterConstantA = -1;
+        else if(activeStepA <= 0)
+          inverterConstantA = 1;
+      } else if(opt0 == 2){ // submodo inverse
+        activeStepA -= 1;
+        if (activeStepA < 0)
+          activeStepA = SEQA_TOTAL_STEPS - 1;
+      } else if(opt0 == 3){ // submodo random
+        activeStepA = random(0,SEQA_TOTAL_STEPS);
+      }
       changedA = 1;
+      
     }
 
     // se pasa al siguiente step del seqB?
     if(millis() - timerStepB >= step_periodB) {
-      activeStepB += 1;
-      if (activeStepB >= TOTAL_STEPS)
-        activeStepB = SEQA_TOTAL_STEPS;
+
+      // se pasa al siguiente step
+      if(opt0 == 0){ // submodo full
+        activeStepB += 1;
+        if (activeStepB >= TOTAL_STEPS)
+          activeStepB = SEQA_TOTAL_STEPS;
+      } else if(opt0 == 1){ // submodo full and back
+        activeStepB += inverterConstantB;
+        if (activeStepB >= TOTAL_STEPS - 1)
+          inverterConstantB = -1;
+        else if(activeStepB <= SEQA_TOTAL_STEPS)
+          inverterConstantB = 1;
+      } else if(opt0 == 2){ // submodo inverse
+        activeStepB -= 1;
+        if (activeStepB < SEQA_TOTAL_STEPS)
+          activeStepB = TOTAL_STEPS - 1;
+      } else if(opt0 == 3){ // submodo random
+        activeStepB = random(SEQA_TOTAL_STEPS, TOTAL_STEPS);
+      }
       changedB = 1;
+      
     }
 
     // actualizar leds mediante 74hc595
@@ -418,15 +503,16 @@ void loop() {
     }
 
     if(changedA){
-      int new_step_pitchA = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
-      byte velocity = 0x5f;
+
+      old_pitchA = new_pitchA;
+      new_pitchA = mapToScale(new_steps_analog[activeStepA], 0, 0, 0, 0);
   
       Serial.write(0x80);
-      Serial.write(old_step_pitchA);
+      Serial.write(old_pitchA);
       Serial.write(velocity);
       
       Serial.write(0x90);
-      Serial.write(new_step_pitchA);
+      Serial.write(new_pitchA);
       Serial.write(velocity);
 
       // se resetea el cronometro de paso
@@ -434,15 +520,16 @@ void loop() {
     }
 
     if(changedB){
-      int new_step_pitchB = map(new_steps[activeStepB],0,1023,minPitch,maxPitch);
-      byte velocity = 0x5f;
+      
+      old_pitchB = new_pitchB;
+      new_pitchB = mapToScale(new_steps_analog[activeStepB], 0, 0, 0, 0);
   
       Serial.write(0x81);
-      Serial.write(old_step_pitchB);
+      Serial.write(old_pitchB);
       Serial.write(velocity);
       
       Serial.write(0x91);
-      Serial.write(new_step_pitchB);
+      Serial.write(new_pitchB);
       Serial.write(velocity);
 
       // se resetea el cronometro de paso
@@ -451,6 +538,40 @@ void loop() {
 
     
     
+  }
+
+  // modo 2
+  void mode2(void){
+  
+  }
+
+  // modo 3
+  void mode3(void){
+  
+  }
+
+  // modo 4
+  void mode4(void){
+  
+  }
+
+  // modo 5 / MIDI CC's
+  void mode5(void){
+
+    /* //codigo de arduino para interfaz midi, modificar para enviar cc's en modo 5 del secuenciador 
+    new_time = millis();
+    if(new_time - prev_time >= step_time){
+      prev_time = new_time;
+      pot_new_1 = analogRead(0) >> 3;
+      if(pot_new_1 != pot_last_1)
+      {
+        pot_last_1 = pot_new_1;
+        Serial.write(0xb0);
+        Serial.write(0x01);
+        Serial.write(pot_new_1);
+      }
+    }
+    */    
   }
   
   // midi 60 es c4

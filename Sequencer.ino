@@ -87,6 +87,7 @@ int new_pitchA;
 int old_pitchB;
 int new_pitchB;
 byte velocity = 0x5f;
+int inverterConstant = 1;
 
 // declaración de funciones
 int lin2log(int index);           // ajuste de potenciometro lineal a logaritmico
@@ -252,11 +253,11 @@ void loop() {
   
   void updateCVOutputs(void){
     if(LOG_POTS){
-      OCR1A = lin2log(new_steps[activeStepA]);
-      OCR1B = lin2log(new_steps[activeStepB]);
+      OCR1A = lin2log(new_steps_analog[activeStepA]);
+      OCR1B = lin2log(new_steps_analog[activeStepB]);
     } else {
-      OCR1A = new_steps[activeStepA];
-      OCR1B = new_steps[activeStepB];
+      OCR1A = new_steps_analog[activeStepA];
+      OCR1B = new_steps_analog[activeStepB];
     }
   }
 
@@ -348,9 +349,23 @@ void loop() {
     if(millis() - timerStepA >= step_periodA) {
 
       // se pasa al siguiente step
-      activeStepA += 1;
-      if (activeStepA >= TOTAL_STEPS)
-        activeStepA = 0;
+      if(opt0 == 0){ // submodo full
+        activeStepA += 1;
+        if (activeStepA >= TOTAL_STEPS)
+          activeStepA = 0;
+      } else if(opt0 == 1){ // submodo full and back
+        activeStepA += inverterConstant;
+        if (activeStepA >= TOTAL_STEPS - 1)
+          inverterConstant = -1;
+        else if(activeStepA <= 0)
+          inverterConstant = 1;
+      } else if(opt0 == 2){ // submodo inverse
+        activeStepA -= 1;
+        if (activeStepA < 0)
+          activeStepA = TOTAL_STEPS - 1;
+      } else if(opt0 == 3){ // submodo random
+        activeStepA = random(0,TOTAL_STEPS);
+      }
 
       activeStepB = activeStepA; // para modo 0, pwm de seqB = seqA 
 
@@ -399,18 +414,52 @@ void loop() {
 
     // se pasa al siguiente step del seqA?
     if(millis() - timerStepA >= step_periodA) {
-      activeStepA += 1;
-      if (activeStepA >= SEQA_TOTAL_STEPS)
-        activeStepA = 0;
+
+      // se pasa al siguiente step
+      if(opt0 == 0){ // submodo full
+        activeStepA += 1;
+        if (activeStepA >= SEQA_TOTAL_STEPS)
+          activeStepA = 0;
+      } else if(opt0 == 1){ // submodo full and back
+        activeStepA += inverterConstant;
+        if (activeStepA >= SEQA_TOTAL_STEPS - 1)
+          inverterConstant = -1;
+        else if(activeStepA <= 0)
+          inverterConstant = 1;
+      } else if(opt0 == 2){ // submodo inverse
+        activeStepA -= 1;
+        if (activeStepA < 0)
+          activeStepA = SEQA_TOTAL_STEPS - 1;
+      } else if(opt0 == 3){ // submodo random
+        activeStepA = random(0,SEQA_TOTAL_STEPS);
+      }
       changedA = 1;
+      
     }
 
     // se pasa al siguiente step del seqB?
     if(millis() - timerStepB >= step_periodB) {
-      activeStepB += 1;
-      if (activeStepB >= TOTAL_STEPS)
-        activeStepB = SEQA_TOTAL_STEPS;
+
+      // se pasa al siguiente step
+      if(opt0 == 0){ // submodo full
+        activeStepB += 1;
+        if (activeStepB >= SEQB_TOTAL_STEPS)
+          activeStepB = 0;
+      } else if(opt0 == 1){ // submodo full and back
+        activeStepB += inverterConstant;
+        if (activeStepB >= SEQB_TOTAL_STEPS - 1)
+          inverterConstant = -1;
+        else if(activeStepB <= 0)
+          inverterConstant = 1;
+      } else if(opt0 == 2){ // submodo inverse
+        activeStepB -= 1;
+        if (activeStepB < 0)
+          activeStepB = SEQB_TOTAL_STEPS - 1;
+      } else if(opt0 == 3){ // submodo random
+        activeStepB = random(SEQA_TOTAL_STEPS, TOTAL_STEPS);
+      }
       changedB = 1;
+      
     }
 
     // actualizar leds mediante 74hc595

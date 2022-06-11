@@ -56,38 +56,37 @@ int minor_pentatonic_scale[5]   = {0,3,5,7,10};                 // [ 1 ,b3 , 4 ,
 int hole_step_scale[6]          = {0,2,4,6,8,10};               // [ 1 , 2 , 3 ,#4 ,#5 ,#6 ]
 
 // variables globales
-int modes[8];                     // lecturas analogas de los modos
-int old_modes[8];                 // lecturas analogas de los modos pasados
-int old_steps[TOTAL_STEPS];       // lecturas analogas de los pasos antiguos
-int new_steps[TOTAL_STEPS];       // lecturas analogas de los pasos nuevos
-int activeStepA;                  // indice del paso activo seqA
-int activeStepB;                  // indice del paso activo seqB
-int mode;                         // modo secuenciador
-int opt0;                         // opcion 0 
-int opt1;                         // opcion 1
-int opt2;                         // opcion 2
-int opt3;                         // opcion 3
-int opt4;                         // opcion 4
-int rateA;                        // frecuencia con la que cambia de estado el secuenciador A
-int rateB;                        // frecuencia con la que cambia de estado el secuenciador B
-float normalized_rateA;           // frecuencia del secuenciador A en escala de 0.0 a 1.0 que representa a MIN_RATE y MAX_RATE
-float normalized_rateB;           // frecuencia del secuenciador B en escala de 0.0 a 1.0 que representa a MIN_RATE y MAX_RATE
-float final_rateA;                // frecuencia del secuenciador A en Hz como decimal
-float final_rateB;                // frecuencia del secuenciador B en Hz como decimal
-unsigned long step_periodA;       // si se usa unsigned int ocurre un overflow a los 64 segundos y se va todo al carajo xd
-unsigned long step_periodB;       // mientras que con unsigned long puede estar varios dias sin overflow
+int modes[8];                       // lecturas analogas de los modos
+int old_modes[8];                   // lecturas analogas de los modos pasados
+int old_steps_analog[TOTAL_STEPS];  // lecturas analogas de los pasos antiguos
+int new_steps_analog[TOTAL_STEPS];  // lecturas analogas de los pasos nuevos
+int activeStepA;                    // indice del paso activo seqA
+int activeStepB;                    // indice del paso activo seqB
+int mode;                           // modo secuenciador
+int opt0;                           // opcion 0 
+int opt1;                           // opcion 1
+int opt2;                           // opcion 2
+int opt3;                           // opcion 3
+int opt4;                           // opcion 4
+int rateA;                          // frecuencia con la que cambia de estado el secuenciador A
+int rateB;                          // frecuencia con la que cambia de estado el secuenciador B
+float normalized_rateA;             // frecuencia del secuenciador A en escala de 0.0 a 1.0 que representa a MIN_RATE y MAX_RATE
+float normalized_rateB;             // frecuencia del secuenciador B en escala de 0.0 a 1.0 que representa a MIN_RATE y MAX_RATE
+float final_rateA;                  // frecuencia del secuenciador A en Hz como decimal
+float final_rateB;                  // frecuencia del secuenciador B en Hz como decimal
+unsigned long step_periodA;         // si se usa unsigned int ocurre un overflow a los 64 segundos y se va todo al carajo xd
+unsigned long step_periodB;         // mientras que con unsigned long puede estar varios dias sin overflow
 unsigned long timerStepA;
 unsigned long timerStepB;
-int minMidiPitch = 21;            // pitch midi minimo
-int maxMidiPitch = 108;           // pitch midi maximo
-int minPitch = 21;            // pitch midi minimo
-int maxPitch = 108;           // pitch midi maximo
-int old_pitch;
-int new_pitch;
+int minMidiPitch = 21;              // pitch midi minimo
+int maxMidiPitch = 108;             // pitch midi maximo
+int minPitch = 21;                  // pitch midi minimo
+int maxPitch = 108;                 // pitch midi maximo
 int old_pitchA;
 int new_pitchA;
 int old_pitchB;
 int new_pitchB;
+byte velocity = 0x5f;
 
 // declaración de funciones
 int lin2log(int index);           // ajuste de potenciometro lineal a logaritmico
@@ -164,8 +163,8 @@ void loop() {
   
       //valores pasados
       old_modes[ctr] = modes[ctr];
-      old_steps[ctr] = new_steps[ctr];
-      old_steps[ctr + 8] = new_steps[ctr + 8];
+      old_steps_analog[ctr] = new_steps_analog[ctr];
+      old_steps_analog[ctr + 8] = new_steps_analog[ctr + 8];
 
       modes[ctr] = analogRead(POTS2); // sample 1
       modes[ctr] += analogRead(POTS2); // oversample 1
@@ -173,17 +172,17 @@ void loop() {
       modes[ctr] += analogRead(POTS2); // oversample 3
       modes[ctr] = modes[ctr]/4; // final value
       
-      new_steps[ctr] = analogRead(POTS1); // sample 1
-      new_steps[ctr] += analogRead(POTS1); // oversample 1
-      new_steps[ctr] += analogRead(POTS1); // oversample 2
-      new_steps[ctr] += analogRead(POTS1); // oversample 3
-      new_steps[ctr] = new_steps[ctr]/4; // final value
+      new_steps_analog[ctr] = analogRead(POTS1); // sample 1
+      new_steps_analog[ctr] += analogRead(POTS1); // oversample 1
+      new_steps_analog[ctr] += analogRead(POTS1); // oversample 2
+      new_steps_analog[ctr] += analogRead(POTS1); // oversample 3
+      new_steps_analog[ctr] = new_steps_analog[ctr]/4; // final value
       
-      new_steps[ctr + 8] = analogRead(POTS0); // sample 1
-      new_steps[ctr + 8] += analogRead(POTS0); // oversample 1
-      new_steps[ctr + 8] += analogRead(POTS0); // oversample 2
-      new_steps[ctr + 8] += analogRead(POTS0); // oversample 3
-      new_steps[ctr + 8] = new_steps[ctr + 8]/4; // final value
+      new_steps_analog[ctr + 8] = analogRead(POTS0); // sample 1
+      new_steps_analog[ctr + 8] += analogRead(POTS0); // oversample 1
+      new_steps_analog[ctr + 8] += analogRead(POTS0); // oversample 2
+      new_steps_analog[ctr + 8] += analogRead(POTS0); // oversample 3
+      new_steps_analog[ctr + 8] = new_steps_analog[ctr + 8]/4; // final value
     }
     
   }
@@ -247,7 +246,7 @@ void loop() {
 
   int mapToScale(int val, int* scale, int baseNote, int baseOct, int octRange){
     
-    int new_pitch = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
+    int new_pitch = map(val,0,1023,minPitch,maxPitch);
     return new_pitch;
   }
   
@@ -266,27 +265,26 @@ void loop() {
   	// modo monofonico
   	if(mode == 0){
   	
-      new_pitch = mapToScale(new_steps[activeStepA],scale,baseNote,baseOct,octRange);
-  		byte velocity = 0x5f;
+      old_pitchA = new_pitchA;
+      new_pitchA = mapToScale(new_steps_analog[activeStepA], 0, 0, 0, 0);
   	  
   	  if(new_pitch != old_pitch){
   	    Serial.write(0x80);
-  	   	Serial.write(old_pitch);
+  	   	Serial.write(old_pitchA);
   			Serial.write(velocity);
   		  
   			Serial.write(0x90);
-  			Serial.write(new_pitch);
+  			Serial.write(new_pitchA);
   			Serial.write(velocity);
   	  }
 	  	
 	  // modo polifonico
   	} else if(mode == 1){
-  	
+  	  
+  	  old_pitchA = map(old_steps[activeStepA],0,1023,minPitch,maxPitch);
   	  new_pitchA = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
-		  old_pitchA = map(old_steps[activeStepA],0,1023,minPitch,maxPitch);
-  		new_pitchB = map(new_steps[activeStepB],0,1023,minPitch,maxPitch);
 		  old_pitchB = map(old_steps[activeStepB],0,1023,minPitch,maxPitch);
-		  byte velocity = 0x5f;
+  		new_pitchB = map(new_steps[activeStepB],0,1023,minPitch,maxPitch);
 	  
 	  	if(new_pitchA != old_pitchA){
 	  	  Serial.write(0x80);
@@ -349,8 +347,6 @@ void loop() {
     // actualizar estados del modo 
     if(millis() - timerStepA >= step_periodA) {
 
-      int old_step_pitch = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
-  
       // se pasa al siguiente step
       activeStepA += 1;
       if (activeStepA >= TOTAL_STEPS)
@@ -377,16 +373,16 @@ void loop() {
       // se actualiza el output final del 74hc595 con los bit ingresados
       digitalWrite(LEDS_RCLK, LOW);
       digitalWrite(LEDS_RCLK, HIGH);
-  
-      int new_step_pitch = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
-      byte velocity = 0x5f;
+
+      old_pitchA = new_pitchA;
+      new_pitchA = mapToScale(new_steps_analog[activeStepA], 0, 0, 0, 0);
   
       Serial.write(0x80);
-      Serial.write(old_step_pitch);
+      Serial.write(old_pitchA);
       Serial.write(velocity);
       
       Serial.write(0x90);
-      Serial.write(new_step_pitch);
+      Serial.write(new_pitchA);
       Serial.write(velocity);
 
       // se resetea el cronometro de paso
@@ -400,9 +396,6 @@ void loop() {
 
     int changedA = 0;
     int changedB = 0;
-
-    int old_step_pitchA = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
-    int old_step_pitchB = map(new_steps[activeStepB],0,1023,minPitch,maxPitch);
 
     // se pasa al siguiente step del seqA?
     if(millis() - timerStepA >= step_periodA) {
@@ -445,15 +438,16 @@ void loop() {
     }
 
     if(changedA){
-      int new_step_pitchA = map(new_steps[activeStepA],0,1023,minPitch,maxPitch);
-      byte velocity = 0x5f;
+
+      old_pitchA = new_pitchA;
+      new_pitchA = mapToScale(new_steps_analog[activeStepA], 0, 0, 0, 0);
   
       Serial.write(0x80);
-      Serial.write(old_step_pitchA);
+      Serial.write(old_pitchA);
       Serial.write(velocity);
       
       Serial.write(0x90);
-      Serial.write(new_step_pitchA);
+      Serial.write(new_pitchA);
       Serial.write(velocity);
 
       // se resetea el cronometro de paso
@@ -461,15 +455,16 @@ void loop() {
     }
 
     if(changedB){
-      int new_step_pitchB = map(new_steps[activeStepB],0,1023,minPitch,maxPitch);
-      byte velocity = 0x5f;
+      
+      old_pitchB = new_pitchB;
+      new_pitchB = mapToScale(new_steps_analog[activeStepB], 0, 0, 0, 0);
   
       Serial.write(0x81);
-      Serial.write(old_step_pitchB);
+      Serial.write(old_pitchB);
       Serial.write(velocity);
       
       Serial.write(0x91);
-      Serial.write(new_step_pitchB);
+      Serial.write(new_pitchB);
       Serial.write(velocity);
 
       // se resetea el cronometro de paso

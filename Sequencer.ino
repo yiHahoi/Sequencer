@@ -1,18 +1,40 @@
-// -----------------------------------------------------------------------------------------------------------------
-//  
-//  YIHASEQUENCER
-//
-// 1 secuenciador de 16 pasos o 2 secuenciadores de 8 pasos
-// 2 CV -> 2xPWM de 10bit a 15.6khz usando TIMER1 de Arduino + filtro pasabajos de 1 polo
-// 24 pots -> 3x cd4051
-// 16 leds -> 2x cd74hc595
-// salidas CV y GATE, opciones de lenght, trimmeo de CV superior e inferior, multiplicador de CV y rate (en sync),
-// modo sincronizado, inversión y reseteo de secuencia
-// interpolación entre pasos para portamento/legato/smooth, calculando un nuevo CV cada 5ms (?)
-// trimmeo de potenciómetros para reducir zona sin audio
-// modo random para rates y steps
-// -----------------------------------------------------------------------------------------------------------------
+/* -----------------------------------------------------------------------------------------------------------------
 
+  YIHASEQUENCER
+
+ 1 secuenciador de 16 pasos o 2 secuenciadores de 8 pasos
+ 2 CV -> 2xPWM de 10bit a 15.6khz usando TIMER1 de Arduino + filtro pasabajos de 1 polo
+ 24 pots -> 3x cd4051
+ 16 leds -> 2x cd74hc595
+
+  modes:
+        0) 1x 16 step sequencer
+        1) 2x 8 step sequencers async
+        2) 2x 8 step sequencers sync
+        3) zig zag
+        4) 1x 8 step sequencer + variable step times
+        5) MIDI CC's
+
+  submodes:
+        0) normal
+        1) full and back
+        2) inverted
+        3) rand 
+
+  scales:
+        0) chromatic
+        1) lydian
+        2) ionian
+        3) mixolydian
+        4) dorian
+        5) aeolian
+        6) phrygian
+        7) locrian
+        8) pentatonic major
+        9) pentatonic minor
+        10)hole step
+
+   -----------------------------------------------------------------------------------------------------------------*/
 
 // 3x cd4051 (24 potenciometros)
 #define MUXA        A0      // bit0 para seleccion de canal del mux
@@ -190,35 +212,6 @@ void loop() {
     
   }
 
-  /*
-    modes:
-          0) 1x 16 step sequencer
-          1) 2x 8 step sequencers async
-          2) 2x 8 step sequencers sync
-          3) zig zag
-          4) 1x 8 step sequencer + variable step times
-          5) MIDI CC's
-
-    submodes:
-          0) normal
-          1) full and back
-          2) inverted
-          3) rand 
-
-    scales:
-          0) chromatic
-          1) lydian
-          2) ionian
-          3) mixolydian
-          4) dorian
-          5) aeolian
-          6) phrygian
-          7) locrian
-          8) pentatonic major
-          9) pentatonic minor
-          10)hole step
-
-  */
 
   void scalePotValues(void){
     
@@ -247,8 +240,25 @@ void loop() {
   
   }
 
-  int mapToScale(int val, int* scale, int baseNote, int baseOct, int octRange){
-    return(map(val,0,1023,minPitch,maxPitch));
+  int totalNotesForScale(int scale){
+    if(scale == 0)
+      return 12;
+    else if(scale == 8 || scale == 9)
+      return 5;
+    else if(scale == 10)
+      return 6;
+    else
+      return 7;
+  }
+
+  int mapToScale(int val, int scale, int baseNote, int baseOct, int octRange){
+
+    int interval = map(val, 0, 1023, 0, totalNotesForScale(scale));
+    baseOct*12
+    int note = baseNote + ;
+    interval += baseNote
+    
+    return(note);
   }
   
   void updateCVOutputs(void){

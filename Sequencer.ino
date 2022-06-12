@@ -119,7 +119,7 @@ void readPotentiometers(void);    // lectura adc de potenciómetros
 void scalePotValues(void);        // transforma valores analogos de potenciometro (0-1023) a rangos de uso
 void modeSelection(void);         // modos y opciones
 void updateCVOutputs(void);       // se actualizan las salidas pwm
-void updateMIDIOutputs(void);      // se actualizan las salidas MIDI
+void updateMIDIOutputs(void);     // se actualizan las salidas MIDI
 
   // -------------------------------------------
 
@@ -251,12 +251,45 @@ void loop() {
       return 7;
   }
 
+  int intervalOffsetForScale(int index, int scale){
+
+    switch(scale){
+      case(0):
+        return(chromatic_scale[index]);
+      case(1):
+        return(lydian_scale[index]);
+      case(2):
+        return(ionian_scale[index]);
+      case(3):
+        return(mixolydian_scale[index]);
+      case(4):
+        return(dorian_scale[index]);
+      case(5):
+        return(aeolian_scale[index]);
+      case(6):
+        return(phrygian_scale[index]);
+      case(7):
+        return(locrian_scale[index]);
+      case(8):
+        return(major_pentatonic_scale[index]);
+      case(9):
+        return(minor_pentatonic_scale[index]);
+      case(10):
+       return(hole_step_scale[index]);
+    }
+  }
+
+
   int mapToScale(int val, int scale, int baseNote, int baseOct, int octRange){
 
-    int interval = map(val, 0, 1023, 0, totalNotesForScale(scale));
-    baseOct*12
-    int note = baseNote + ;
-    interval += baseNote
+    int intervals = map(val, 0, 1023, 0, totalNotesForScale(scale)*octRange);
+    intervals % totalNotesForScale(scale)
+    int offset = intervalOffsetForScale((totalNotesForScale(scale)*octRange)%, int scale);
+    
+    intervals += baseNote;
+    intervals % totalNotesForScale(scale);
+    
+    int note = baseNote + baseOct*12 + intervals;
     
     return(note);
   }

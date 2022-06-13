@@ -1,18 +1,40 @@
-// -----------------------------------------------------------------------------------------------------------------
-//  
-//  YIHASEQUENCER
-//
-// 1 secuenciador de 16 pasos o 2 secuenciadores de 8 pasos
-// 2 CV -> 2xPWM de 10bit a 15.6khz usando TIMER1 de Arduino + filtro pasabajos de 1 polo
-// 24 pots -> 3x cd4051
-// 16 leds -> 2x cd74hc595
-// salidas CV y GATE, opciones de lenght, trimmeo de CV superior e inferior, multiplicador de CV y rate (en sync),
-// modo sincronizado, inversión y reseteo de secuencia
-// interpolación entre pasos para portamento/legato/smooth, calculando un nuevo CV cada 5ms (?)
-// trimmeo de potenciómetros para reducir zona sin audio
-// modo random para rates y steps
-// -----------------------------------------------------------------------------------------------------------------
+/* -----------------------------------------------------------------------------------------------------------------
 
+  YIHASEQUENCER
+
+ 1 secuenciador de 16 pasos o 2 secuenciadores de 8 pasos
+ 2 CV -> 2xPWM de 10bit a 15.6khz usando TIMER1 de Arduino + filtro pasabajos de 1 polo
+ 24 pots -> 3x cd4051
+ 16 leds -> 2x cd74hc595
+
+  modes:
+        0) 1x 16 step sequencer
+        1) 2x 8 step sequencers async
+        2) 2x 8 step sequencers sync
+        3) zig zag
+        4) 1x 8 step sequencer + variable step times
+        5) MIDI CC's
+
+  submodes:
+        0) normal
+        1) full and back
+        2) inverted
+        3) rand 
+
+  scales:
+        0) chromatic
+        1) lydian
+        2) ionian
+        3) mixolydian
+        4) dorian
+        5) aeolian
+        6) phrygian
+        7) locrian
+        8) pentatonic major
+        9) pentatonic minor
+        10)hole step
+
+   -----------------------------------------------------------------------------------------------------------------*/
 
 // 3x cd4051 (24 potenciometros)
 #define MUXA        A0      // bit0 para seleccion de canal del mux
@@ -97,7 +119,7 @@ void readPotentiometers(void);    // lectura adc de potenciómetros
 void scalePotValues(void);        // transforma valores analogos de potenciometro (0-1023) a rangos de uso
 void modeSelection(void);         // modos y opciones
 void updateCVOutputs(void);       // se actualizan las salidas pwm
-void updateMIDIOutputs(void);      // se actualizan las salidas MIDI
+void updateMIDIOutputs(void);     // se actualizan las salidas MIDI
 
   // -------------------------------------------
 
@@ -190,35 +212,6 @@ void loop() {
     
   }
 
-  /*
-    modes:
-          0) 1x 16 step sequencer
-          1) 2x 8 step sequencers async
-          2) 2x 8 step sequencers sync
-          3) zig zag
-          4) 1x 8 step sequencer + variable step times
-          5) MIDI CC's
-
-    submodes:
-          0) normal
-          1) full and back
-          2) inverted
-          3) rand 
-
-    scales:
-          0) chromatic
-          1) lydian
-          2) ionian
-          3) mixolydian
-          4) dorian
-          5) aeolian
-          6) phrygian
-          7) locrian
-          8) pentatonic major
-          9) pentatonic minor
-          10)hole step
-
-  */
 
   void scalePotValues(void){
     
@@ -227,7 +220,7 @@ void loop() {
     opt1 = map(modes[2],0,1023,0,10); // escala
     opt2 = map(modes[3],0,1023,0,11); // nota base
     opt3 = map(modes[4],0,1023,0,2); // octava base
-    opt4 = map(modes[5],0,1023,0,4); // rango de octavas
+    opt4 = map(modes[5],0,1023,1,3); // rango de octavas
     rateA = modes[6];
     rateB = modes[7];
 
@@ -247,9 +240,61 @@ void loop() {
   
   }
 
-  int mapToScale(int val, int* scale, int baseNote, int baseOct, int octRange){
-    return(map(val,0,1023,minPitch,maxPitch));
+  int totalNotesForScale(int scale){
+    if(scale == 0)
+      return 12;
+    else if(scale == 8 || scale == 9)
+      return 5;
+    else if(scale == 10)
+      return 6;
+    else
+      return 7;
   }
+
+  int intervalOffsetForScale(int index, int scale){
+
+    switch(scale){
+      case(0):
+        return(chromatic_scale[index]);
+      case(1):
+        return(lydian_scale[index]);
+      case(2):
+        return(ionian_scale[index]);
+      case(3):
+        return(mixolydian_scale[index]);
+      case(4):
+        return(dorian_scale[index]);
+      case(5):
+        return(aeolian_scale[index]);
+      case(6):
+        return(phrygian_scale[index]);
+      case(7):
+        return(locrian_scale[index]);
+      case(8):
+        return(major_pentatonic_scale[index]);
+      case(9):
+        return(minor_pentatonic_scale[index]);
+      case(10):
+       return(hole_step_scale[index]);
+    }
+  }
+
+  
+  int mapToScale(int val, int scale, int baseNote, int baseOct, int octRange){
+
+    // midi c4 = 60
+    int midiMin = 24;             // midi minimo C1
+    int midiMax= 108;             // midi maximo C8
+
+    int interval = map(val, 0, 1023, 0, totalNotesForScale(scale)*octRange);
+    int oct = interval / totalNotesForScale(scale);
+    int note = interval % totalNotesForScale(scale);
+    int scaleSemitoneOffset = intervalOffsetForScale(note, scale);
+    int output = midiMin + baseNote + scaleSemitoneOffset + 12*(baseOct + oct);
+    
+    return(output);
+  }
+
   
   void updateCVOutputs(void){
     if(single_sequencer_mode){
@@ -279,7 +324,7 @@ void loop() {
     if(mode == 0){
     
       old_pitchA = new_pitchA;
-      new_pitchA = mapToScale(new_steps_analog[activeStepA], 0, 0, 0, 0);
+      new_pitchA = mapToScale(new_steps_analog[activeStepA], opt1, opt2, opt3, opt4);
       
       if(new_pitchA != old_pitchA){
         Serial.write(0x80);
@@ -296,8 +341,8 @@ void loop() {
       
       old_pitchA = new_pitchA;
       old_pitchB = new_pitchB;
-      new_pitchA = mapToScale(new_steps_analog[activeStepA], 0, 0, 0, 0);
-      new_pitchB = mapToScale(new_steps_analog[activeStepB], 0, 0, 0, 0);
+      new_pitchA = mapToScale(new_steps_analog[activeStepA], opt1, opt2, opt3, opt4);
+      new_pitchB = mapToScale(new_steps_analog[activeStepB], opt1, opt2, opt3, opt4);
     
       if(new_pitchA != old_pitchA){
         Serial.write(0x80);
@@ -404,7 +449,7 @@ void loop() {
       digitalWrite(LEDS_RCLK, HIGH);
 
       old_pitchA = new_pitchA;
-      new_pitchA = mapToScale(new_steps_analog[activeStepA], 0, 0, 0, 0);
+      new_pitchA = mapToScale(new_steps_analog[activeStepA], opt1, opt2, opt3, opt4);
   
       Serial.write(0x80);
       Serial.write(old_pitchA);
@@ -505,7 +550,7 @@ void loop() {
     if(changedA){
 
       old_pitchA = new_pitchA;
-      new_pitchA = mapToScale(new_steps_analog[activeStepA], 0, 0, 0, 0);
+      new_pitchA = mapToScale(new_steps_analog[activeStepA], opt1, opt2, opt3, opt4);
   
       Serial.write(0x80);
       Serial.write(old_pitchA);
@@ -522,7 +567,7 @@ void loop() {
     if(changedB){
       
       old_pitchB = new_pitchB;
-      new_pitchB = mapToScale(new_steps_analog[activeStepB], 0, 0, 0, 0);
+      new_pitchB = mapToScale(new_steps_analog[activeStepB], opt1, opt2, opt3, opt4);
   
       Serial.write(0x81);
       Serial.write(old_pitchB);
@@ -574,6 +619,6 @@ void loop() {
     */    
   }
   
-  // midi 60 es c4
+
   
   

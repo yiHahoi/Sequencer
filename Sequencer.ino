@@ -220,7 +220,7 @@ void loop() {
     opt1 = map(modes[2],0,1023,0,10); // escala
     opt2 = map(modes[3],0,1023,0,11); // nota base
     opt3 = map(modes[4],0,1023,0,2); // octava base
-    opt4 = map(modes[5],0,1023,0,4); // rango de octavas
+    opt4 = map(modes[5],0,1023,1,3); // rango de octavas
     rateA = modes[6];
     rateB = modes[7];
 
@@ -279,17 +279,22 @@ void loop() {
     }
   }
 
-
+  
   int mapToScale(int val, int scale, int baseNote, int baseOct, int octRange){
+
+    // midi c4 = 60
+    int midiMin = 24;             // midi minimo C1
+    int midiMax= 108;             // midi maximo C8
 
     int interval = map(val, 0, 1023, 0, totalNotesForScale(scale)*octRange);
     int oct = interval / totalNotesForScale(scale);
     int note = interval % totalNotesForScale(scale);
     int scaleSemitoneOffset = intervalOffsetForScale(note, scale);
-    int output = baseNote + scaleSemitoneOffset + 12*(baseOct + oct);
+    int output = midiMin + baseNote + scaleSemitoneOffset + 12*(baseOct + oct);
     
     return(output);
   }
+
   
   void updateCVOutputs(void){
     if(single_sequencer_mode){
@@ -319,7 +324,7 @@ void loop() {
     if(mode == 0){
     
       old_pitchA = new_pitchA;
-      new_pitchA = mapToScale(new_steps_analog[activeStepA], 0, 0, 0, 0);
+      new_pitchA = mapToScale(new_steps_analog[activeStepA], opt1, opt2, opt3, opt4);
       
       if(new_pitchA != old_pitchA){
         Serial.write(0x80);
@@ -336,8 +341,8 @@ void loop() {
       
       old_pitchA = new_pitchA;
       old_pitchB = new_pitchB;
-      new_pitchA = mapToScale(new_steps_analog[activeStepA], 0, 0, 0, 0);
-      new_pitchB = mapToScale(new_steps_analog[activeStepB], 0, 0, 0, 0);
+      new_pitchA = mapToScale(new_steps_analog[activeStepA], opt1, opt2, opt3, opt4);
+      new_pitchB = mapToScale(new_steps_analog[activeStepB], opt1, opt2, opt3, opt4);
     
       if(new_pitchA != old_pitchA){
         Serial.write(0x80);
@@ -444,7 +449,7 @@ void loop() {
       digitalWrite(LEDS_RCLK, HIGH);
 
       old_pitchA = new_pitchA;
-      new_pitchA = mapToScale(new_steps_analog[activeStepA], 0, 0, 0, 0);
+      new_pitchA = mapToScale(new_steps_analog[activeStepA], opt1, opt2, opt3, opt4);
   
       Serial.write(0x80);
       Serial.write(old_pitchA);
@@ -545,7 +550,7 @@ void loop() {
     if(changedA){
 
       old_pitchA = new_pitchA;
-      new_pitchA = mapToScale(new_steps_analog[activeStepA], 0, 0, 0, 0);
+      new_pitchA = mapToScale(new_steps_analog[activeStepA], opt1, opt2, opt3, opt4);
   
       Serial.write(0x80);
       Serial.write(old_pitchA);
@@ -562,7 +567,7 @@ void loop() {
     if(changedB){
       
       old_pitchB = new_pitchB;
-      new_pitchB = mapToScale(new_steps_analog[activeStepB], 0, 0, 0, 0);
+      new_pitchB = mapToScale(new_steps_analog[activeStepB], opt1, opt2, opt3, opt4);
   
       Serial.write(0x81);
       Serial.write(old_pitchB);
@@ -614,6 +619,6 @@ void loop() {
     */    
   }
   
-  // midi 60 es c4
+
   
   

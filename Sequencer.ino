@@ -282,16 +282,13 @@ void loop() {
 
   int mapToScale(int val, int scale, int baseNote, int baseOct, int octRange){
 
-    int intervals = map(val, 0, 1023, 0, totalNotesForScale(scale)*octRange);
-    intervals % totalNotesForScale(scale)
-    int offset = intervalOffsetForScale((totalNotesForScale(scale)*octRange)%, int scale);
+    int interval = map(val, 0, 1023, 0, totalNotesForScale(scale)*octRange);
+    int oct = interval / totalNotesForScale(scale);
+    int note = interval % totalNotesForScale(scale);
+    int scaleSemitoneOffset = intervalOffsetForScale(note, scale);
+    int output = baseNote + scaleSemitoneOffset + 12*(baseOct + oct);
     
-    intervals += baseNote;
-    intervals % totalNotesForScale(scale);
-    
-    int note = baseNote + baseOct*12 + intervals;
-    
-    return(note);
+    return(output);
   }
   
   void updateCVOutputs(void){

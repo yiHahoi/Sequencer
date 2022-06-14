@@ -100,6 +100,9 @@ unsigned long step_periodA;         // si se usa unsigned int ocurre un overflow
 unsigned long step_periodB;         // mientras que con unsigned long puede estar varios dias sin overflow
 unsigned long timerStepA;
 unsigned long timerStepB;
+unsigned long new_time_cc;          // cronometro para modo midi
+unsigned long prev_time_cc;         // cronometro para modo midi
+unsigned long step_time_cc;         // cronometro para modo midi
 int minMidiPitch = 21;              // pitch midi minimo
 int maxMidiPitch = 108;             // pitch midi maximo
 int minPitch = 21;                  // pitch midi minimo
@@ -153,6 +156,8 @@ void setup() {
   activeStepB = SEQA_TOTAL_STEPS - 1;
   timerStepA = 0;
   timerStepB = 0;
+  step_time_cc = 5;
+  prev_time_cc = 0;
   
 }
 
@@ -602,21 +607,35 @@ void loop() {
 
   // modo 5 / MIDI CC's
   void mode5(void){
+    
+    // 1011nnnn 0ccccccc 0vvvvvvv mensaje de Control Change, 1100nnnn 0ppppppp mensaje de cambio de programa
+    // para cada potenciometro menos el de seleccion de modo (modes[0])
 
-    /* //codigo de arduino para interfaz midi, modificar para enviar cc's en modo 5 del secuenciador 
-    new_time = millis();
-    if(new_time - prev_time >= step_time){
-      prev_time = new_time;
-      pot_new_1 = analogRead(0) >> 3;
-      if(pot_new_1 != pot_last_1)
-      {
-        pot_last_1 = pot_new_1;
-        Serial.write(0xb0);
-        Serial.write(0x01);
-        Serial.write(pot_new_1);
+    int i;
+    //new_time_cc = millis();
+    //if(new_time_cc - prev_time_cc >= step_time_cc){
+
+      //prev_time_cc = new_time_cc;
+
+      for(i=1; i<6; i++){
+        if((modes[i] >> 3) != (old_modes[i] >> 3))
+        {
+          Serial.write(0xb0); // 1011nnnn 
+          Serial.write(i); // 0ccccccc 
+          Serial.write(modes[i] >> 3); // 0vvvvvvv
+        }
       }
-    }
-    */    
+      
+      for(i=0; i<16; i++){
+        if((new_steps_analog[i] >> 3) != (old_steps_analog[i] >> 3))
+        {
+          Serial.write(0xb0); // 1011nnnn 
+          Serial.write(i+6); // 0ccccccc 
+          Serial.write(new_steps_analog[i] >> 3); // 0vvvvvvv
+        }
+      }
+
+    //}
   }
   
 

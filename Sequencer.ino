@@ -617,7 +617,7 @@ void loop() {
 
       //prev_time_cc = new_time_cc;
 
-      for(i=1; i<6; i++){
+      for(i=1; i<8; i++){
         if((modes[i] >> 3) != (old_modes[i] >> 3))
         {
           Serial.write(0xb0); // 1011nnnn 
@@ -630,7 +630,7 @@ void loop() {
         if((new_steps_analog[i] >> 3) != (old_steps_analog[i] >> 3))
         {
           Serial.write(0xb0); // 1011nnnn 
-          Serial.write(i+6); // 0ccccccc 
+          Serial.write(i+8); // 0ccccccc 
           Serial.write(new_steps_analog[i] >> 3); // 0vvvvvvv
         }
       }
